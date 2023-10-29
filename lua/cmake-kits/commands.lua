@@ -4,9 +4,15 @@ local plenay_job = require("plenary.job")
 
 local M = {}
 
+M.active_job = nil
+
 M.configure = function(callback)
     if project.root_dir == nil then
         error("You must be in a cmake project")
+        return
+    end
+    if M.active_job then
+        error("You must wait for a command to finish before you use this command")
         return
     end
 
@@ -29,16 +35,24 @@ M.configure = function(callback)
     for _, arg in ipairs(config.configure_args) do
         table.insert(args, arg)
     end
+
+    M.active_job = true
     plenay_job:new({
         command = config.command,
         args = args,
         on_exit = function()
+            M.active_job = false
             M.update_build_targets(callback)
         end
     }):start()
 end
 
 M.build = function(callback)
+    if M.active_job then
+        error("You must wait for a command to finish before you use this command")
+        return
+    end
+
     local build_dir = project.interpolate_string(config.build_directory)
     if vim.fn.isdirectory(build_dir) == 0 then
         return M.configure(M.build)
@@ -50,11 +64,13 @@ M.build = function(callback)
         if choice == nil then
             return
         end
+        M.active_job = true
         project.selected_build = choice
         plenay_job:new({
             command = config.command,
             args = { "--build", build_dir, "--config", project.build_type, "--target", choice },
             on_exit = function()
+                M.active_job = false
                 if type(callback) == "function" then
                     callback()
                 end
@@ -64,8 +80,14 @@ M.build = function(callback)
 end
 
 M.update_build_targets = function(callback)
+    if M.active_job then
+        error("You must wait for a command to finish before you use this command")
+        return
+    end
+
     local build_dir = project.interpolate_string(config.build_directory)
     project.build_targets = {}
+    M.active_job = true
     plenay_job:new({
         command = config.command,
         args = { "--build", build_dir, "--config", project.build_type, "--target", "help" },
@@ -82,6 +104,7 @@ M.update_build_targets = function(callback)
             table.insert(project.build_targets, name)
         end,
         on_exit = function()
+            M.active_job = false
             if type(callback) == "function" then
                 callback()
             end
