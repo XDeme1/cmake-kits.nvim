@@ -32,9 +32,6 @@ M.configure = function(callback)
     plenay_job:new({
         command = config.command,
         args = args,
-        on_stderr = function(err, data)
-            vim.print(data)
-        end,
         on_exit = function()
             M.update_build_targets(callback)
         end

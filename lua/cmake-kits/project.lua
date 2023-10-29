@@ -155,9 +155,6 @@ M.scan_for_kits = function()
         end
     end
 
-    table.sort(compilers.gcc)
-    table.sort(compilers.clang)
-    table.sort(compilers.clang_cl)
     for _, path in ipairs(compilers.clang) do
         table.insert(M.kits, M.create_kit.clang(path))
     end
@@ -167,6 +164,9 @@ M.scan_for_kits = function()
     for _, path in ipairs(compilers.gcc) do
         table.insert(M.kits, M.create_kit.gcc(path))
     end
+    table.sort(M.kits, function(a, b)
+        return a.name:lower() < b.name:lower()
+    end)
 end
 
 M.create_kit = {
@@ -262,4 +262,50 @@ M.create_kit = {
     end
 }
 
+M.load_project = function()
+    local save_path = vim.fs.joinpath(vim.fn.stdpath("data"), "cmake-kits-projects.json")
+
+    local file = io.open(save_path, "r")
+    local json = nil
+    if file then
+        json = vim.json.decode(file:read("*a"))
+        M.kits = json.kits
+        for key, value in pairs(json.projects[M.root_dir]) do
+            M[key] = value
+        end
+        file:close()
+    end
+end
+M.save_project = function()
+    local save_path = vim.fs.joinpath(vim.fn.stdpath("data"), "cmake-kits-projects.json")
+    local save_data = {
+        kits = M.kits,
+        projects = {
+            [M.root_dir] = {
+                build_type = M.build_type,
+                build_targets = M.build_targets,
+                selected_build = M.selected_build,
+                selected_runnable = M.selected_runnable,
+                selected_kit = M.selected_kit,
+            }
+        }
+    }
+
+    local old_file = io.open(save_path, "r")
+    local json = nil
+    if old_file then
+        json = vim.json.decode(old_file:read("*a"))
+        json.kits = save_data.kits
+        for key, value in pairs(save_data.projects[M.root_dir]) do
+            json.projects[M.root_dir][key] = value
+        end
+        old_file:close()
+    end
+
+    local file = io.open(save_path, "w+")
+    if file then
+        file:write(vim.json.encode(json))
+        file:close()
+    end
+end
 return M
