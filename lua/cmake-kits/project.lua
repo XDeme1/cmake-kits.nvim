@@ -15,8 +15,16 @@ local job = require("plenary.job")
 --- @class cmake-kits.ProjectState Table holding the state of the cmake project
 --- @field root_dir string? Path to the root project
 --- @field build_type cmake-kits.BuildVariant
+---
 --- @field kits cmake-kits.Kit[]
---- @field selected_kit cmake-kits.Kit?
+--- @field selected_kit cmake-kits.Kit|string
+---
+--- @field build_targets string[]
+--- @field selected_build string?
+---
+--- @field runnable_targets string[]
+--- @field selected_runnable string?
+---
 --- @field private create_kit table
 local M = {}
 
@@ -24,7 +32,7 @@ M.root_dir = nil
 M.build_type = "Debug"
 
 M.kits = {}
-M.selected_kit = nil
+M.selected_kit = "Unspecified"
 
 M.build_targets = {}
 M.selected_build = nil
@@ -35,9 +43,47 @@ M.selected_runnable = nil
 --- Used to substitute ${workspaceFolder} and ${buildType} with the correct string
 --- @param path string
 M.interpolate_string = function(path)
-    path = path:gsub("${workspaceFolder}", M.root_dir or vim.uv.cwd())
+    path = path:gsub("${workspaceFolder}", M.root_dir)
     path = path:gsub("${buildType}", M.build_type)
     return path
+end
+
+M.select_build_type = function()
+    vim.ui.select({ "Debug", "Release", "MinSizeRel", "RelWithDebInfo" }, {
+        prompt = "Select a build type",
+    }, function(choice)
+        if choice == nil then
+            return
+        end
+        M.build_type = choice
+    end)
+end
+
+M.select_kit = function()
+    local items = {
+        { id = -1, name = "Scan for kits" },
+        { id = 0,  name = "Unspecified (Let CMake decide)" }
+    }
+    for i, kit in ipairs(M.kits) do
+        table.insert(items, { id = i, name = kit.name })
+    end
+    vim.ui.select(items, {
+        prompt = "Select a kit",
+        format_item = function(item)
+            return item.name
+        end,
+    }, function(choice)
+        if choice == nil then
+            return
+        elseif choice.id == -1 then
+            M.scan_for_kits()
+            return
+        elseif choice.id == 0 then
+            M.selected_kit = "Unspecified"
+            return
+        end
+        M.selected_kit = M.kits[choice.id]
+    end)
 end
 
 M.load_kits = function()
@@ -109,6 +155,9 @@ M.scan_for_kits = function()
         end
     end
 
+    table.sort(compilers.gcc)
+    table.sort(compilers.clang)
+    table.sort(compilers.clang_cl)
     for _, path in ipairs(compilers.clang) do
         table.insert(M.kits, M.create_kit.clang(path))
     end
@@ -211,7 +260,6 @@ M.create_kit = {
 
         return result
     end
-
 }
 
 return M
