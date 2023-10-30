@@ -1,5 +1,6 @@
 local config = require("cmake-kits.config")
 local project = require("cmake-kits.project")
+local kits = require("cmake-kits.kits")
 local commands = require("cmake-kits.commands")
 
 vim.api.nvim_create_user_command("CmakeSetRootDir", function(opts)
@@ -35,7 +36,7 @@ end, {
 })
 
 vim.api.nvim_create_user_command("CmakeSelectKit", function()
-    project.select_kit()
+    kits.select_kit()
 end, {})
 
 vim.api.nvim_create_user_command("CmakeConfigure", function()
