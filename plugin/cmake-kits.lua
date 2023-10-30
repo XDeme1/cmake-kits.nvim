@@ -3,6 +3,15 @@ local project = require("cmake-kits.project")
 local kits = require("cmake-kits.kits")
 local commands = require("cmake-kits.commands")
 
+kits.load_kits()
+
+vim.api.nvim_create_autocmd("VimLeave", {
+    group = vim.api.nvim_create_augroup("CmakeSaveKits", {}),
+    callback = function()
+        kits.save_kits()
+    end
+})
+
 vim.api.nvim_create_user_command("CmakeSetRootDir", function(opts)
     if not vim.tbl_isempty(opts.fargs) then
         project.root_dir = opts.fargs[1]

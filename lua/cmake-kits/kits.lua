@@ -67,7 +67,6 @@ M.save_kits = function()
         file:write(vim.json.encode(json))
         file:close()
     end
-    vim.print(json)
 end
 
 M.scan_for_kits = function()
@@ -141,13 +140,14 @@ M.scan_for_kits = function()
                     table.insert(new_kits, value)
                 end
 
-                M.kits = vim.iter(new_kits):filter(function(kit)
+                new_kits = vim.iter(new_kits):filter(function(kit)
                     for _, value in ipairs(M.kits) do
-                        return not vim.deep_equal(kit, value)
+                        return vim.deep_equal(kit, value)
                     end
                     return true
                 end):totable()
 
+                vim.list_extend(M.kits, new_kits)
                 timer:close()
             end
         end)
