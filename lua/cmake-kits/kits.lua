@@ -56,7 +56,7 @@ M.save_kits = function()
     local vscode_path = vim.fs.normalize("$HOME") .. "/.local/share/CMakeTools/cmake-tools-kits.json"
 
     local old_file = io.open(vscode_path, "r")
-    local json = nil
+    local json = {}
     if old_file then
         json = vim.json.decode(old_file:read("*a"))
         old_file:close()

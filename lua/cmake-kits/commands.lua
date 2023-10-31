@@ -2,6 +2,7 @@ local project = require("cmake-kits.project")
 local config = require("cmake-kits.config")
 local plenay_job = require("plenary.job")
 local kits = require("cmake-kits.kits")
+local utils = require("cmake-kits.utils")
 local M = {}
 
 M.active_job = nil
@@ -64,7 +65,7 @@ M.build = function(callback)
         prompt = "Select build target",
         format_item = function(target)
             return target.name
-        end
+        end,
     }, function(choice)
         if choice == nil then
             return
@@ -73,7 +74,7 @@ M.build = function(callback)
         project.selected_build = choice
         plenay_job:new({
             command = config.command,
-            args = { "--build", build_dir, "--config", project.build_type, "--target", choice },
+            args = { "--build", build_dir, "--config", project.build_type, "--target", choice.name },
             on_exit = function()
                 M.active_job = false
                 if type(callback) == "function" then
@@ -96,20 +97,22 @@ M.run = function(callback)
     end
 
     vim.ui.select(project.runnable_targets, {
-        prompt = "Select a targetto run",
+        prompt = "Select a target to run",
         format_item = function(target)
             return target.name
-        end,
+        end
     }, function(choice)
         if choice == nil then
             return
         end
-        M.active_job = true
+
+        local terminal, args = utils.get_terminal()
         project.selected_runnable = choice
         plenay_job:new({
-            command = choice.full_path,
+            command = terminal,
+            args = { unpack(args), "bash", "-c", project.selected_runnable.full_path ..
+            " && " .. "read -n 1 -r -p \"\nPress any key to continue...\"" },
             on_exit = function()
-                M.active_job = false
                 if type(callback) == "function" then
                     callback()
                 end
@@ -125,29 +128,54 @@ M.update_build_targets = function(callback)
     end
 
     local build_dir = project.interpolate_string(config.build_directory)
+    local libs = {}
     project.build_targets = {}
     M.active_job = true
     plenay_job:new({
         command = config.command,
         args = { "--build", build_dir, "--config", project.build_type, "--target", "help" },
-        on_stdout = function(err, data)
-            if not vim.endswith(data, "phony") then
-                return
-            elseif vim.startswith(data, "Experimental") or vim.startswith(data, "Nightly") or vim.startswith(data, "Continuous") then
-                return
+        on_stdout = function(_, data)
+            local name = data:sub(0, #data - 7)
+            if vim.endswith(name, ".a") then
+                table.insert(libs, name:sub(4, #name - 2))
             end
-            local name = data:sub(0, #data - 7)                                                                           -- remove `phony` from the end
-            if vim.endswith(name, "test") or vim.endswith(name, "rebuild_cache") or vim.endswith(name, "edit_cache") then -- Filter reserved names from cmake
-                return
-            end
-            --- @type cmake-kits.Target
-            local target = {
-                name = name,
-                full_path = ""
-            }
-            table.insert(project.build_targets, target)
         end,
         on_exit = function()
+            local file = io.open(vim.fs.joinpath(project.root_dir, build_dir, "CMakeFiles", "TargetDirectories.txt"), "r")
+            if file then
+                local full_path = file:read("*l")
+                while full_path do
+                    full_path = full_path:sub(1, #full_path - 4)
+
+                    local basename = vim.fs.basename(full_path)
+                    if vim.startswith(basename, "Experimental") or
+                        vim.startswith(basename, "Nightly") or
+                        vim.startswith(basename, "Continuous") or
+                        vim.startswith(basename, "edit_cache") or
+                        vim.startswith(basename, "rebuild_cache") or
+                        vim.endswith(basename, "test") then
+                    else
+                        local target_dir = vim.fs.dirname(vim.fs.dirname(full_path))
+                        local target = {
+                            name = basename,
+                            full_path = vim.fs.joinpath(target_dir, basename),
+                        }
+                        if vim.list_contains(libs, basename) then
+                            target = vim.tbl_extend("force", target, { type = "Static Library" })
+                        else
+                            target = vim.tbl_extend("force", target, { type = "Executable" })
+                        end
+                        table.insert(project.build_targets, target)
+                    end
+                    full_path = file:read("*l")
+                end
+                file:close()
+            end
+            table.insert(project.build_targets, {
+                name = "all",
+                full_path = nil,
+                type = nil
+            })
             M.active_job = false
             if type(callback) == "function" then
                 callback()
@@ -162,28 +190,13 @@ M.update_runnable_targets = function(callback)
         return
     end
 
-    local build_dir = project.interpolate_string(config.build_directory)
-    plenay_job:new({
-        command = "find",
-        args = { vim.fs.joinpath(project.root_dir, build_dir), "-type", "f", "-executable" },
-        on_stdout = function(_, data)
-            if vim.endswith(data, "bin") or vim.endswith(data, "out") then
-                return
-            end
+    --- @param target cmake-kits.Target
+    project.runnable_targets = vim.iter(project.build_targets):filter(function(target)
+        return target.name ~= "all" and target.type ~= "Static Library"
+    end):totable()
 
-            --- @type cmake-kits.Target
-            local target = {
-                name = vim.fs.basename(data),
-                full_path = data,
-            }
-            table.insert(project.runnable_targets, target)
-        end,
-        on_exit = function()
-            M.active_job = false
-            if type(callback) == "function" then
-                callback()
-            end
-        end
-    }):start()
+    if type(callback) == "function" then
+        callback()
+    end
 end
 return M
