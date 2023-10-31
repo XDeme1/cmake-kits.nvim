@@ -5,10 +5,11 @@ local commands = require("cmake-kits.commands")
 
 kits.load_kits()
 
-vim.api.nvim_create_autocmd("VimLeave", {
+vim.api.nvim_create_autocmd("VimLeavePre", {
     group = vim.api.nvim_create_augroup("CmakeSaveKits", {}),
     callback = function()
         kits.save_kits()
+        project.save_project()
     end
 })
 

@@ -7,19 +7,15 @@ local kits = require("cmake-kits.kits")
 --- @field C string?
 --- @field CXX string?
 
---- @class cmake-kits.Target
---- @field name string
---- @field full_path string
-
 --- @class cmake-kits.ProjectState Table holding the state of the cmake project
 --- @field root_dir string? Path to the root project
 --- @field build_type cmake-kits.BuildVariant
 ---
---- @field build_targets cmake-kits.Target[]
---- @field selected_build cmake-kits.Target?
+--- @field build_targets string[]
+--- @field selected_build string?
 ---
---- @field runnable_targets cmake-kits.Target[]
---- @field selected_runnable cmake-kits.Target?
+--- @field runnable_targets string[]
+--- @field selected_runnable string?
 local M = {}
 
 M.root_dir = nil
@@ -57,7 +53,6 @@ M.load_project = function()
     local json = nil
     if file then
         json = vim.json.decode(file:read("*a"))
-        kits.kits = json.kits
         for key, value in pairs(json.projects[M.root_dir]) do
             M[key] = value
         end
@@ -68,7 +63,6 @@ end
 M.save_project = function()
     local save_path = vim.fs.joinpath(vim.fn.stdpath("data"), "cmake-kits-projects.json")
     local save_data = {
-        kits = kits.kits,
         projects = {
             [M.root_dir] = {
                 build_type = M.build_type,
@@ -85,7 +79,6 @@ M.save_project = function()
     local json = nil
     if old_file then
         json = vim.json.decode(old_file:read("*a"))
-        json.kits = save_data.kits
         for key, value in pairs(save_data.projects[M.root_dir]) do
             json.projects[M.root_dir][key] = value
         end
@@ -94,7 +87,11 @@ M.save_project = function()
 
     local file = io.open(save_path, "w+")
     if file then
-        file:write(vim.json.encode(json))
+        if json then
+            file:write(vim.json.encode(json))
+        else
+            file:write(vim.json.encode(save_data))
+        end
         file:close()
     end
 end
