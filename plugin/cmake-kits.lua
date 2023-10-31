@@ -55,3 +55,7 @@ end, {})
 vim.api.nvim_create_user_command("CmakeBuild", function()
     commands.build()
 end, {})
+
+vim.api.nvim_create_user_command("CmakeRun", function()
+    commands.run()
+end, {})

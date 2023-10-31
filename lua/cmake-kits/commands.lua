@@ -1,7 +1,7 @@
 local project = require("cmake-kits.project")
 local config = require("cmake-kits.config")
 local plenay_job = require("plenary.job")
-
+local kits = require("cmake-kits.kits")
 local M = {}
 
 M.active_job = nil
@@ -25,10 +25,10 @@ M.configure = function(callback)
         config.generator,
         "-DCMAKE_BUILD_TYPE=" .. project.build_type,
     }
-    if project.selected_kit ~= "Unspecified" then
-        table.insert(args, "-DCMAKE_C_COMPILER=" .. project.selected_kit.compilers.C) -- C compiler is guaranteed to exist
-        if project.selected_kit.compilers.CXX then
-            table.insert(args, "-DCMAKE_CXX_COMPILER=" .. project.selected_kit.compilers.CXX)
+    if kits.selected_kit ~= "Unspecified" then
+        table.insert(args, "-DCMAKE_C_COMPILER=" .. kits.selected_kit.compilers.C) -- C compiler is guaranteed to exist
+        if kits.selected_kit.compilers.CXX then
+            table.insert(args, "-DCMAKE_CXX_COMPILER=" .. kits.selected_kit.compilers.CXX)
         end
     end
 
@@ -42,7 +42,9 @@ M.configure = function(callback)
         args = args,
         on_exit = function()
             M.active_job = false
-            M.update_build_targets(callback)
+            M.update_build_targets(function()
+                M.update_runnable_targets(callback)
+            end)
         end
     }):start()
 end
@@ -54,12 +56,15 @@ M.build = function(callback)
     end
 
     local build_dir = project.interpolate_string(config.build_directory)
-    if vim.fn.isdirectory(build_dir) == 0 then
+    if vim.fn.isdirectory(build_dir) == 0 or vim.tbl_isempty(project.build_targets) then
         return M.configure(M.build)
     end
 
     vim.ui.select(project.build_targets, {
         prompt = "Select build target",
+        format_item = function(target)
+            return target.name
+        end
     }, function(choice)
         if choice == nil then
             return
@@ -69,6 +74,40 @@ M.build = function(callback)
         plenay_job:new({
             command = config.command,
             args = { "--build", build_dir, "--config", project.build_type, "--target", choice },
+            on_exit = function()
+                M.active_job = false
+                if type(callback) == "function" then
+                    callback()
+                end
+            end
+        }):start()
+    end)
+end
+
+M.run = function(callback)
+    if M.active_job then
+        error("You must wait for a command to finish before you use this command")
+        return
+    end
+
+    local build_dir = project.interpolate_string(config.build_directory)
+    if vim.fn.isdirectory(build_dir) == 0 or vim.tbl_isempty(project.runnable_targets) then
+        return M.configure(M.run)
+    end
+
+    vim.ui.select(project.runnable_targets, {
+        prompt = "Select a targetto run",
+        format_item = function(target)
+            return target.name
+        end,
+    }, function(choice)
+        if choice == nil then
+            return
+        end
+        M.active_job = true
+        project.selected_runnable = choice
+        plenay_job:new({
+            command = choice.full_path,
             on_exit = function()
                 M.active_job = false
                 if type(callback) == "function" then
@@ -101,7 +140,43 @@ M.update_build_targets = function(callback)
             if vim.endswith(name, "test") or vim.endswith(name, "rebuild_cache") or vim.endswith(name, "edit_cache") then -- Filter reserved names from cmake
                 return
             end
-            table.insert(project.build_targets, name)
+            --- @type cmake-kits.Target
+            local target = {
+                name = name,
+                full_path = ""
+            }
+            table.insert(project.build_targets, target)
+        end,
+        on_exit = function()
+            M.active_job = false
+            if type(callback) == "function" then
+                callback()
+            end
+        end
+    }):start()
+end
+
+M.update_runnable_targets = function(callback)
+    if M.active_job then
+        error("You must wait for a command to finish before you use this command")
+        return
+    end
+
+    local build_dir = project.interpolate_string(config.build_directory)
+    plenay_job:new({
+        command = "find",
+        args = { vim.fs.joinpath(project.root_dir, build_dir), "-type", "f", "-executable" },
+        on_stdout = function(_, data)
+            if vim.endswith(data, "bin") or vim.endswith(data, "out") then
+                return
+            end
+
+            --- @type cmake-kits.Target
+            local target = {
+                name = vim.fs.basename(data),
+                full_path = data,
+            }
+            table.insert(project.runnable_targets, target)
         end,
         on_exit = function()
             M.active_job = false

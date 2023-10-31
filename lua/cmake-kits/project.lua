@@ -7,16 +7,19 @@ local kits = require("cmake-kits.kits")
 --- @field C string?
 --- @field CXX string?
 
+--- @class cmake-kits.Target
+--- @field name string
+--- @field full_path string
+
 --- @class cmake-kits.ProjectState Table holding the state of the cmake project
 --- @field root_dir string? Path to the root project
 --- @field build_type cmake-kits.BuildVariant
 ---
+--- @field build_targets cmake-kits.Target[]
+--- @field selected_build cmake-kits.Target?
 ---
---- @field build_targets string[]
---- @field selected_build string?
----
---- @field runnable_targets string[]
---- @field selected_runnable string?
+--- @field runnable_targets cmake-kits.Target[]
+--- @field selected_runnable cmake-kits.Target?
 local M = {}
 
 M.root_dir = nil
@@ -70,6 +73,7 @@ M.save_project = function()
             [M.root_dir] = {
                 build_type = M.build_type,
                 build_targets = M.build_targets,
+                runnable_targets = M.runnable_targets,
                 selected_build = M.selected_build,
                 selected_runnable = M.selected_runnable,
                 selected_kit = kits.selected_kit,
