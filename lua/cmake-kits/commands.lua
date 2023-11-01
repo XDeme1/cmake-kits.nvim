@@ -18,7 +18,7 @@ M.configure = function(callback)
         return
     end
 
-    local build_dir = project.interpolate_string(config.build_directory)
+    local build_dir = vim.fs.joinpath(project.root_dir, project.interpolate_string(config.build_directory))
     local args = {
         "-S",
         project.root_dir,

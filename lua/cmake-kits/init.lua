@@ -5,6 +5,7 @@ local utils = require("cmake-kits.utils")
 
 --- @class cmake-kits.SetupConfig : cmake-kits.CmakeConfig
 --- @field auto_root boolean Automatic detection and setting of root_dir.
+--- @field on_root_change (fun(dir: string): nil)? Event called when root_dir changes.
 --- @field configure_on_open boolean Automatic configuration of project. auto_root is required for this to work properly.
 --- @field configure_on_save boolean Automatic configuration of project on CMakeLists.txt file save
 
@@ -13,6 +14,7 @@ local M = {}
 --- @type cmake-kits.SetupConfig
 local default = {
     auto_root = true,
+    on_root_change = nil,
     configure_on_open = true,
     configure_on_save = true,
 }
@@ -42,6 +44,9 @@ M.setup = function(opts)
                 local root_dir = utils.get_cmake_root(ev.file)
                 if root_dir ~= project.root_dir then
                     project.root_dir = root_dir
+                    if opts.on_root_change then
+                        opts.on_root_change(project.root_dir)
+                    end
                 end
             end
         })
@@ -58,9 +63,6 @@ M.setup = function(opts)
         })
     end
 
-    for key, _ in pairs(default) do
-        opts[key] = nil
-    end
     vim.tbl_extend("force", config, opts)
 end
 
