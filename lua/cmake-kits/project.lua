@@ -1,4 +1,3 @@
-local config = require("cmake-kits.config")
 local kits = require("cmake-kits.kits")
 
 --- @alias cmake-kits.BuildVariant "Debug" | "Release" | "MinSizeRel" | "RelWithDebInfo"

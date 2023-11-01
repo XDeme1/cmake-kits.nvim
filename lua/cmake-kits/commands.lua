@@ -3,25 +3,27 @@ local config = require("cmake-kits.config")
 local plenay_job = require("plenary.job")
 local kits = require("cmake-kits.kits")
 local utils = require("cmake-kits.utils")
+
 local M = {}
 
 M.active_job = nil
 
 M.configure = function(callback)
     if project.root_dir == nil then
-        error("You must be in a cmake project")
+        vim.notify("You must be in a cmake project", vim.log.levels.ERROR, nil)
         return
     end
     if M.active_job then
-        error("You must wait for a command to finish before you use this command")
+        vim.notify("You must wait for a command to finish before you use this command", vim.log.levels.ERROR, nil)
         return
     end
 
+    local build_dir = project.interpolate_string(config.build_directory)
     local args = {
         "-S",
         project.root_dir,
         "-B",
-        project.interpolate_string(config.build_directory),
+        build_dir,
         "-G",
         config.generator,
         "-DCMAKE_BUILD_TYPE=" .. project.build_type,
@@ -43,6 +45,18 @@ M.configure = function(callback)
         args = args,
         on_exit = function()
             M.active_job = false
+            if config.compile_commands_path then
+                local build_file = io.open(vim.fs.joinpath(build_dir, "compile_commands.json"), "r")
+                if build_file then
+                    local out_dir = project.interpolate_string(config.compile_commands_path)
+                    local out_file = io.open(vim.fs.joinpath(out_dir, "compile_commands.json"), "w+")
+                    if out_file then
+                        out_file:write(build_file:read("*a"))
+                        out_file:close()
+                    end
+                    build_file:close()
+                end
+            end
             M.update_build_targets(function()
                 M.update_runnable_targets(callback)
             end)
@@ -52,7 +66,7 @@ end
 
 M.build = function(callback)
     if M.active_job then
-        error("You must wait for a command to finish before you use this command")
+        vim.notify("You must wait for a command to finish before you use this command", vim.log.levels.ERROR, nil)
         return
     end
 
@@ -87,7 +101,7 @@ end
 
 M.run = function(callback)
     if M.active_job then
-        error("You must wait for a command to finish before you use this command")
+        vim.notify("You must wait for a command to finish before you use this command", vim.log.levels.ERROR, nil)
         return
     end
 
@@ -106,7 +120,7 @@ M.run = function(callback)
             return
         end
 
-        local terminal, args = utils.get_terminal()
+        local terminal, args = utils.get_external_terminal()
         project.selected_runnable = choice
         plenay_job:new({
             command = terminal,
@@ -123,7 +137,7 @@ end
 
 M.update_build_targets = function(callback)
     if M.active_job then
-        error("You must wait for a command to finish before you use this command")
+        vim.notify("You must wait for a command to finish before you use this command", vim.log.levels.ERROR, nil)
         return
     end
 
@@ -199,4 +213,5 @@ M.update_runnable_targets = function(callback)
         callback()
     end
 end
+
 return M

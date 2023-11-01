@@ -20,6 +20,15 @@ M.compile_commands_path = "${workspaceFolder}"
 M.configure_args = { "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" }
 M.build_args = {}
 
-M.configure_on_open = true
-
 return M
+
+--- Defaults
+---M.command = "cmake"
+---M.generator = "Ninja"
+
+---M.build_directory = "build/${buildType}"
+
+---M.compile_commands_path = "${workspaceFolder}"
+
+---M.configure_args = { "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" }
+---M.build_args = {}

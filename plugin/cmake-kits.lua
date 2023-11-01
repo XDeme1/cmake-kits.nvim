@@ -8,8 +8,10 @@ kits.load_kits()
 vim.api.nvim_create_autocmd("VimLeavePre", {
     group = vim.api.nvim_create_augroup("CmakeSaveKits", {}),
     callback = function()
-        kits.save_kits()
-        project.save_project()
+        if project.root_dir then
+            kits.save_kits()
+            project.save_project()
+        end
     end
 })
 
