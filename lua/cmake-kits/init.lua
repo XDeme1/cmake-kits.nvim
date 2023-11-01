@@ -4,13 +4,15 @@ local commands = require("cmake-kits.commands")
 local utils = require("cmake-kits.utils")
 
 --- @class cmake-kits.SetupConfig : cmake-kits.CmakeConfig
---- @field configure_on_open boolean
---- @field configure_on_save boolean
+--- @field auto_root boolean Automatic detection and setting of root_dir.
+--- @field configure_on_open boolean Automatic configuration of project. auto_root is required for this to work properly.
+--- @field configure_on_save boolean Automatic configuration of project on CMakeLists.txt file save
 
 local M = {}
 
 --- @type cmake-kits.SetupConfig
 local default = {
+    auto_root = true,
     configure_on_open = true,
     configure_on_save = true,
 }
@@ -32,23 +34,31 @@ M.setup = function(opts)
             end
         })
     end
-    if opts.configure_on_open then
-        vim.api.nvim_create_autocmd("LspAttach", {
-            group = vim.api.nvim_create_augroup("CmakeConfigOnOpen", {}),
-            pattern = { "CMakeLists.txt" },
+
+    if opts.auto_root then
+        vim.api.nvim_create_autocmd("DirChanged", {
+            group = vim.api.nvim_create_augroup("CmakeAutoRoot", {}),
             callback = function(ev)
-                local root_dir = utils.get_cmake_root(vim.fs.dirname(ev.file))
+                local root_dir = utils.get_cmake_root(ev.file)
                 if root_dir ~= project.root_dir then
                     project.root_dir = root_dir
-                    if opts.configure_on_open then
-                        commands.configure()
-                    end
                 end
             end
         })
     end
 
-    for key, value in pairs(default) do
+    if opts.configure_on_open then
+        vim.api.nvim_create_autocmd("DirChanged", {
+            group = vim.api.nvim_create_augroup("CmakeConfigOnOpen", {}),
+            callback = function()
+                if project.root_dir then
+                    commands.configure()
+                end
+            end
+        })
+    end
+
+    for key, _ in pairs(default) do
         opts[key] = nil
     end
     vim.tbl_extend("force", config, opts)
