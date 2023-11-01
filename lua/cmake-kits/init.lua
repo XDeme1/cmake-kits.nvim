@@ -56,7 +56,7 @@ M.setup = function(opts)
         vim.api.nvim_create_autocmd("DirChanged", {
             group = vim.api.nvim_create_augroup("CmakeConfigOnOpen", {}),
             callback = function()
-                if project.root_dir then
+                if project.root_dir and not commands.active_job then
                     commands.configure()
                 end
             end
