@@ -1,7 +1,7 @@
 local kits = require("cmake-kits.kits")
 
 --- @alias cmake-kits.BuildVariant "Debug" | "Release" | "MinSizeRel" | "RelWithDebInfo"
---- @alias cmake-kits.TargetType "Executable" | "Static Library"
+--- @alias cmake-kits.TargetType "EXECUTABLE" | "STATIC_LIBRARY"
 
 --- @class cmake-kits.Compilers
 --- @field C string?

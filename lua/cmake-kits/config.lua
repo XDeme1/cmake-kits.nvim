@@ -13,7 +13,7 @@ local M = {}
 M.command = "cmake"
 M.generator = "Ninja"
 
-M.build_directory = "build/${buildType}"
+M.build_directory = "${workspaceFolder}/build/${buildType}"
 
 M.compile_commands_path = "${workspaceFolder}"
 

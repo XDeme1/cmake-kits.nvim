@@ -3,6 +3,8 @@ local config = require("cmake-kits.config")
 local plenay_job = require("plenary.job")
 local kits = require("cmake-kits.kits")
 local utils = require("cmake-kits.utils")
+local cmake_file_api = require("cmake-kits.cmake_file_api")
+local Path = require("plenary.path")
 
 local M = {}
 
@@ -18,7 +20,9 @@ M.configure = function(callback)
         return
     end
 
-    local build_dir = vim.fs.joinpath(project.root_dir, project.interpolate_string(config.build_directory))
+    local build_dir = project.interpolate_string(config.build_directory)
+    cmake_file_api.create_query(build_dir)
+
     local args = {
         "-S",
         project.root_dir,
@@ -141,61 +145,41 @@ M.update_build_targets = function(callback)
         return
     end
 
-    local build_dir = project.interpolate_string(config.build_directory)
-    local libs = {}
     project.build_targets = {}
-    M.active_job = true
-    plenay_job:new({
-        command = config.command,
-        args = { "--build", build_dir, "--config", project.build_type, "--target", "help" },
-        on_stdout = function(_, data)
-            local name = data:sub(0, #data - 7)
-            if vim.endswith(name, ".a") then
-                table.insert(libs, name:sub(4, #name - 2))
-            end
-        end,
-        on_exit = function()
-            local file = io.open(vim.fs.joinpath(project.root_dir, build_dir, "CMakeFiles", "TargetDirectories.txt"), "r")
-            if file then
-                local full_path = file:read("*l")
-                while full_path do
-                    full_path = full_path:sub(1, #full_path - 4)
+    local build_dir = project.interpolate_string(config.build_directory)
+    local reply_dir = Path:new(build_dir) / ".cmake" / "api" / "v1" / "reply"
+    local found = vim.fs.find(function(name, _)
+        return name:match("^target")
+    end, {
+        limit = math.huge,
+        path = tostring(reply_dir)
+    })
 
-                    local basename = vim.fs.basename(full_path)
-                    if vim.startswith(basename, "Experimental") or
-                        vim.startswith(basename, "Nightly") or
-                        vim.startswith(basename, "Continuous") or
-                        vim.startswith(basename, "edit_cache") or
-                        vim.startswith(basename, "rebuild_cache") or
-                        vim.endswith(basename, "test") then
-                    else
-                        local target_dir = vim.fs.dirname(vim.fs.dirname(full_path))
-                        local target = {
-                            name = basename,
-                            full_path = vim.fs.joinpath(target_dir, basename),
-                        }
-                        if vim.list_contains(libs, basename) then
-                            target = vim.tbl_extend("force", target, { type = "Static Library" })
-                        else
-                            target = vim.tbl_extend("force", target, { type = "Executable" })
-                        end
-                        table.insert(project.build_targets, target)
-                    end
-                    full_path = file:read("*l")
-                end
-                file:close()
+    local target_all = {
+        name = "all",
+        full_path = nil,
+        type = nil,
+    }
+    table.insert(project.build_targets, target_all)
+    for _, path in ipairs(found) do
+        local file = io.open(path, "r")
+        if file then
+            local data = vim.json.decode(file:read("*a"))
+            --- @type cmake-kits.Target
+            if data.artifacts then
+                local target = {
+                    name = data.name,
+                    full_path = vim.fs.joinpath(build_dir, data.artifacts[1].path),
+                    type = data.type,
+                }
+                table.insert(project.build_targets, target)
             end
-            table.insert(project.build_targets, {
-                name = "all",
-                full_path = nil,
-                type = nil
-            })
-            M.active_job = false
-            if type(callback) == "function" then
-                callback()
-            end
+            file:close()
         end
-    }):start()
+    end
+    if type(callback) == "function" then
+        callback()
+    end
 end
 
 M.update_runnable_targets = function(callback)
@@ -206,7 +190,7 @@ M.update_runnable_targets = function(callback)
 
     --- @param target cmake-kits.Target
     project.runnable_targets = vim.iter(project.build_targets):filter(function(target)
-        return target.name ~= "all" and target.type ~= "Static Library"
+        return target.name ~= "all" and target.type ~= "STATIC_LIBRARY"
     end):totable()
 
     if type(callback) == "function" then
