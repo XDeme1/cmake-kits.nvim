@@ -88,19 +88,26 @@ M.build = function(callback)
         if choice == nil then
             return
         end
-        M.active_job = true
         project.selected_build = choice
-        plenay_job:new({
-            command = config.command,
-            args = { "--build", build_dir, "--config", project.build_type, "--target", choice.name },
-            on_exit = function()
-                M.active_job = false
-                if type(callback) == "function" then
-                    callback()
-                end
-            end
-        }):start()
+        M.create_build_job(build_dir, callback, choice)
     end)
+end
+
+function M.quick_build(callback)
+    if M.active_job then
+        vim.notify("You must wait for a command to finish before you use this command", vim.log.levels.ERROR, nil)
+        return
+    end
+    if project.selected_build == nil then
+        vim.notify("You must select a build target before running CmakeQuickBuild", vim.log.levels.ERROR, nil)
+        return
+    end
+
+    local build_dir = project.interpolate_string(config.build_directory)
+    if vim.fn.isdirectory(build_dir) == 0 or vim.tbl_isempty(project.build_targets) then
+        return M.configure(function() M.quick_build(callback) end)
+    end
+    M.create_build_job(build_dir, callback, project.selected_build)
 end
 
 M.run = function(callback)
@@ -123,23 +130,66 @@ M.run = function(callback)
         if choice == nil then
             return
         end
-
-        local terminal, args = utils.get_external_terminal()
         project.selected_runnable = choice
-        plenay_job:new({
-            command = terminal,
-            args = { unpack(args), "bash", "-c", project.selected_runnable.full_path ..
-            " && " .. "read -n 1 -r -p \"\nPress any key to continue...\"" },
-            on_exit = function()
-                if type(callback) == "function" then
-                    callback()
-                end
-            end
-        }):start()
+        M.create_run_job(callback)
     end)
 end
 
-M.update_build_targets = function(callback)
+function M.quick_run(callback)
+    if M.active_job then
+        vim.notify("You must wait for a command to finish before you use this command", vim.log.levels.ERROR, nil)
+        return
+    end
+    if project.selected_runnable == nil then
+        vim.notify("You must select a runnable target before running CmakeQuickRun", vim.log.levels.ERROR, nil)
+        return
+    end
+
+    local build_dir = project.interpolate_string(config.build_directory)
+    if vim.fn.isdirectory(build_dir) == 0 or vim.tbl_isempty(project.runnable_targets) then
+        return M.configure(function() M.quick_run(callback) end)
+    end
+
+    M.create_run_job(callback)
+end
+
+--- @param target cmake-kits.Target
+function M.create_build_job(build_dir, callback, target)
+    if target == nil then
+        target = {
+            name = "all",
+        }
+    end
+    M.active_job = true
+    plenay_job:new({
+        command = config.command,
+        args = { "--build", build_dir, "--config", project.build_type, "--target", target.name },
+        on_exit = function()
+            M.active_job = false
+            if type(callback) == "function" then
+                callback()
+            end
+        end
+    }):start()
+end
+
+function M.create_run_job(callback)
+    M.active_job = true
+    local terminal, args = utils.get_external_terminal()
+    plenay_job:new({
+        command = terminal,
+        args = { unpack(args), "bash", "-c", project.selected_runnable.full_path ..
+        " && " .. "read -n 1 -r -p \"\nPress any key to continue...\"" },
+        on_exit = function()
+            M.active_job = false
+            if type(callback) == "function" then
+                callback()
+            end
+        end
+    }):start()
+end
+
+function M.update_build_targets(callback)
     if M.active_job then
         vim.notify("You must wait for a command to finish before you use this command", vim.log.levels.ERROR, nil)
         return
