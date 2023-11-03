@@ -69,8 +69,10 @@ M.load_project = function()
     local json = nil
     if file then
         json = vim.json.decode(file:read("*a"))
-        for key, value in pairs(json.projects[M.root_dir]) do
-            M[key] = value
+        if json.projects[M.root_dir] then
+            for key, value in pairs(json.projects[M.root_dir]) do
+                M[key] = value
+            end
         end
         file:close()
     end
