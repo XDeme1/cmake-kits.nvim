@@ -17,7 +17,7 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 
 vim.api.nvim_create_user_command("CmakeSetRootDir", function(opts)
     if not vim.tbl_isempty(opts.fargs) then
-        project.root_dir = opts.fargs[1]
+        project.change_root_dir(opts.fargs[1])
         return
     end
     local cwd = vim.uv.cwd()
@@ -29,7 +29,7 @@ vim.api.nvim_create_user_command("CmakeSetRootDir", function(opts)
         if input == nil then
             return
         end
-        project.root_dir = cwd
+        project.change_root_dir(cwd)
     end)
 end, { nargs = "*" })
 

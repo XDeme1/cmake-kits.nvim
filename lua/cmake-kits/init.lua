@@ -43,7 +43,7 @@ M.setup = function(opts)
             callback = function(ev)
                 local root_dir = utils.get_cmake_root(ev.file)
                 if root_dir ~= project.root_dir then
-                    project.root_dir = root_dir
+                    project.change_root_dir(root_dir)
                     if opts.on_root_change then
                         opts.on_root_change(project.root_dir)
                     end

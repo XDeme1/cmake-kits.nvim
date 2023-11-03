@@ -1,4 +1,5 @@
 local kits = require("cmake-kits.kits")
+local Path = require("plenary.path")
 
 --- @alias cmake-kits.BuildVariant "Debug" | "Release" | "MinSizeRel" | "RelWithDebInfo"
 --- @alias cmake-kits.TargetType "EXECUTABLE" | "STATIC_LIBRARY"
@@ -38,6 +39,16 @@ M.interpolate_string = function(path)
     path = path:gsub("${workspaceFolder}", M.root_dir)
     path = path:gsub("${buildType}", M.build_type)
     return path
+end
+
+M.change_root_dir = function(dir)
+    local cmake_file = Path:new(dir) / "CMakeLists.txt"
+    if not cmake_file:exists() then
+        vim.notify(dir .. " is not a valid cmake root dir", vim.log.levels.ERROR, nil)
+        return
+    end
+    M.root_dir = dir
+    M.load_project()
 end
 
 M.select_build_type = function()
