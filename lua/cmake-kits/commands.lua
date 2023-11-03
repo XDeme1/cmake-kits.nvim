@@ -75,7 +75,7 @@ M.build = function(callback)
     end
 
     local build_dir = project.interpolate_string(config.build_directory)
-    if vim.fn.isdirectory(build_dir) == 0 or vim.tbl_isempty(project.build_targets) then
+    if vim.fn.isdirectory(build_dir) == 0 then
         return M.configure(M.build)
     end
 
@@ -117,7 +117,7 @@ M.run = function(callback)
     end
 
     local build_dir = project.interpolate_string(config.build_directory)
-    if vim.fn.isdirectory(build_dir) == 0 or vim.tbl_isempty(project.runnable_targets) then
+    if vim.fn.isdirectory(build_dir) == 0 then
         return M.configure(M.run)
     end
 
