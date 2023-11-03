@@ -9,27 +9,27 @@ function M.active_job(title)
     })
 end
 
-function M.configuration_error(message)
-    vim.notify(message, vim.log.levels.ERROR, {
-        title = "Configuration error",
+function M.configuration(message, log_level)
+    vim.notify(message, log_level, {
+        title = "Configuration",
         on_open = function(win)
             vim.api.nvim_win_set_config(win, { focusable = false })
         end
     })
 end
 
-function M.build_error(message)
-    vim.notify(message, vim.log.levels.ERROR, {
-        title = "Build error",
+function M.build(message, log_level)
+    vim.notify(message, log_level, {
+        title = "Build",
         on_open = function(win)
             vim.api.nvim_win_set_config(win, { focusable = false })
         end
     })
 end
 
-function M.run_error(message)
-    vim.notify(message, vim.log.levels.ERROR, {
-        title = "Run error",
+function M.run(message, log_level)
+    vim.notify(message, log_level, {
+        title = "Run",
         on_open = function(win)
             vim.api.nvim_win_set_config(win, { focusable = false })
         end

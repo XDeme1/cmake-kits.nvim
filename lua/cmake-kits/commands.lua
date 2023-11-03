@@ -13,7 +13,7 @@ M.active_job = nil
 
 M.configure = function(callback)
     if project.root_dir == nil then
-        notify.configuration_error("You must be in a cmake project")
+        notify.configuration("You must be in a cmake project", vim.log.levels.ERROR)
         return
     end
     if M.active_job then
@@ -51,9 +51,11 @@ M.configure = function(callback)
         on_exit = function(_, code)
             M.active_job = false
             if code ~= 0 then
-                notify.configuration_error("Configuration failure")
+                notify.configuration("Configuration failure", vim.log.levels.ERROR)
                 return
             end
+
+            notify.configuration("Configuration done", vim.log.levels.INFO)
             if config.compile_commands_path then
                 local build_file = io.open(vim.fs.joinpath(build_dir, "compile_commands.json"), "r")
                 if build_file then
@@ -104,7 +106,7 @@ function M.quick_build(callback)
         return
     end
     if project.selected_build == nil then
-        notify.build_error("You must select a build target before running CmakeQuickBuild")
+        notify.build("You must select a build target before running CmakeQuickBuild", vim.log.levels.ERROR)
         return
     end
 
@@ -146,7 +148,7 @@ function M.quick_run(callback)
         return
     end
     if project.selected_runnable == nil then
-        notify.run_error("You must select a runnable target before running CmakeQuickRun")
+        notify.run("You must select a runnable target before running CmakeQuickRun", vim.log.levels.ERROR)
         return
     end
 
@@ -172,9 +174,11 @@ function M.create_build_job(build_dir, callback, target)
         on_exit = function(_, code)
             M.active_job = false
             if code ~= 0 then
-                notify.build_error("Build failure")
+                notify.build("Build failure", vim.log.levels.ERROR)
                 return
             end
+
+            notify.build("Build done", vim.log.levels.INFO)
             if type(callback) == "function" then
                 callback()
             end
@@ -192,9 +196,11 @@ function M.create_run_job(callback)
         on_exit = function(_, code)
             M.active_job = false
             if code ~= 0 then
-                notify.run_error("Run failure")
+                notify.run("Run failure", vim.log.levels.ERROR)
                 return
             end
+
+            notify.run("Run done", vim.log.levels.INFO)
             if type(callback) == "function" then
                 callback()
             end
