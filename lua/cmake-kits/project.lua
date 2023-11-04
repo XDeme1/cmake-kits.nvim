@@ -100,9 +100,7 @@ M.save_project = function()
     local json = nil
     if old_file then
         json = vim.json.decode(old_file:read("*a"))
-        for key, value in pairs(save_data.projects[M.root_dir]) do
-            json.projects[M.root_dir][key] = value
-        end
+        json.projects[M.root_dir] = save_data.projects[M.root_dir]
         old_file:close()
     end
 
