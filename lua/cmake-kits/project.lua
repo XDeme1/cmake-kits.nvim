@@ -42,13 +42,16 @@ M.interpolate_string = function(path)
 end
 
 M.change_root_dir = function(dir)
+    if dir == nil then
+        M.root_dir = dir
+        return
+    end
     local cmake_file = Path:new(dir) / "CMakeLists.txt"
     if not cmake_file:exists() then
         vim.notify(dir .. " is not a valid cmake root dir", vim.log.levels.ERROR, nil)
         return
     end
     M.root_dir = dir
-    M.load_project()
 end
 
 M.select_build_type = function()

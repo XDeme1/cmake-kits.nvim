@@ -41,20 +41,25 @@ M.setup = function(opts)
         })
     end
 
-    if opts.auto_root then
-        vim.api.nvim_create_autocmd("DirChanged", {
-            group = vim.api.nvim_create_augroup("CmakeAutoRoot", {}),
-            callback = function(ev)
-                local root_dir = utils.get_cmake_root(ev.file)
-                if root_dir ~= project.root_dir then
-                    project.change_root_dir(root_dir)
-                    if opts.on_root_change then
-                        opts.on_root_change(project.root_dir)
-                    end
+    vim.api.nvim_create_autocmd("DirChanged", {
+        group = vim.api.nvim_create_augroup("CmakeAuto", {}),
+        callback = function(ev)
+            local root_dir = utils.get_cmake_root(ev.file)
+            if root_dir == project.root_dir then
+                return
+            end
+            if root_dir == nil then
+                project.save_project()
+            end
+            if opts.auto_root then
+                project.change_root_dir(root_dir)
+                project.load_project()
+                if opts.on_root_change then
+                    opts.on_root_change(project.root_dir)
                 end
             end
-        })
-    end
+        end
+    })
 
     if opts.configure_on_open then
         vim.api.nvim_create_autocmd("DirChanged", {
@@ -68,7 +73,9 @@ M.setup = function(opts)
     end
 
     vim.keymap.set("n", opts.terminal.toggle, function()
-        terminal.toggle()
+        if project.root_dir then
+            terminal.toggle()
+        end
     end, {})
 
     vim.tbl_extend("force", config, opts)
