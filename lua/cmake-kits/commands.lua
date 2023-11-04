@@ -6,6 +6,7 @@ local utils = require("cmake-kits.utils")
 local cmake_file_api = require("cmake-kits.cmake_file_api")
 local Path = require("plenary.path")
 local notify = require("cmake-kits.notify")
+local terminal = require("cmake-kits.terminal")
 
 local M = {}
 
@@ -44,10 +45,21 @@ M.configure = function(callback)
         table.insert(args, arg)
     end
 
+    terminal.clear()
     M.active_job = true
     plenay_job:new({
         command = config.command,
         args = args,
+        on_stdout = function(_, data)
+            vim.schedule(function()
+                terminal.send_data("[configure] " .. data)
+            end)
+        end,
+        on_stderr = function(_, data)
+            vim.schedule(function()
+                terminal.send_data("[configure] " .. data)
+            end)
+        end,
         on_exit = function(_, code)
             M.active_job = false
             if code ~= 0 then
@@ -68,9 +80,11 @@ M.configure = function(callback)
                     build_file:close()
                 end
             end
-            M.update_build_targets(function()
-                M.update_runnable_targets(callback)
-            end)
+            M.update_build_targets()
+            M.update_runnable_targets()
+            if type(callback) == "function" then
+                callback()
+            end
         end
     }):start()
 end
@@ -171,6 +185,16 @@ function M.create_build_job(build_dir, callback, target)
     plenay_job:new({
         command = config.command,
         args = { "--build", build_dir, "--config", project.build_type, "--target", target.name },
+        on_stdout = function(_, data)
+            vim.schedule(function()
+                terminal.send_data("[build] " .. data)
+            end)
+        end,
+        on_stderr = function(_, data)
+            vim.schedule(function()
+                terminal.send_data("[build] " .. data)
+            end)
+        end,
         on_exit = function(_, code)
             M.active_job = false
             if code ~= 0 then
@@ -187,10 +211,17 @@ function M.create_build_job(build_dir, callback, target)
 end
 
 function M.create_run_job(callback)
+    if not Path:new(project.selected_runnable.full_path):exists() then
+        local build_dir = project.interpolate_string(config.build_directory)
+        return M.create_build_job(build_dir, function()
+            M.create_run_job(callback)
+        end, project.selected_runnable)
+    end
+
     M.active_job = true
-    local terminal, args = utils.get_external_terminal()
+    local ext_terminal, args = utils.get_external_terminal()
     plenay_job:new({
-        command = terminal,
+        command = ext_terminal,
         args = { unpack(args), "bash", "-c", project.selected_runnable.full_path ..
         " && " .. "read -n 1 -r -p \"\nPress any key to continue...\"" },
         on_exit = function(_, code)
@@ -208,7 +239,7 @@ function M.create_run_job(callback)
     }):start()
 end
 
-function M.update_build_targets(callback)
+function M.update_build_targets()
     project.build_targets = {}
     local build_dir = project.interpolate_string(config.build_directory)
     local reply_dir = Path:new(build_dir) / ".cmake" / "api" / "v1" / "reply"
@@ -241,20 +272,13 @@ function M.update_build_targets(callback)
             file:close()
         end
     end
-    if type(callback) == "function" then
-        callback()
-    end
 end
 
-M.update_runnable_targets = function(callback)
+M.update_runnable_targets = function()
     --- @param target cmake-kits.Target
     project.runnable_targets = vim.iter(project.build_targets):filter(function(target)
         return target.name ~= "all" and target.type ~= "STATIC_LIBRARY"
     end):totable()
-
-    if type(callback) == "function" then
-        callback()
-    end
 end
 
 return M

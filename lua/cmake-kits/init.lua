@@ -2,6 +2,7 @@ local project = require("cmake-kits.project")
 local config = require("cmake-kits.config")
 local commands = require("cmake-kits.commands")
 local utils = require("cmake-kits.utils")
+local terminal = require("cmake-kits.terminal")
 
 --- @class cmake-kits.SetupConfig : cmake-kits.CmakeConfig
 --- @field auto_root boolean Automatic detection and setting of root_dir.
@@ -17,6 +18,9 @@ local default = {
     on_root_change = nil,
     configure_on_open = true,
     configure_on_save = true,
+    terminal = {
+        toggle = "<F1>"
+    }
 }
 
 --- @param opts cmake-kits.SetupConfig
@@ -62,6 +66,10 @@ M.setup = function(opts)
             end
         })
     end
+
+    vim.keymap.set("n", opts.terminal.toggle, function()
+        terminal.toggle()
+    end, {})
 
     vim.tbl_extend("force", config, opts)
 end
