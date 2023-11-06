@@ -90,6 +90,10 @@ M.configure = function(callback)
 end
 
 M.build = function(callback)
+    if project.root_dir == nil then
+        notify.configuration("You must be in a cmake project", vim.log.levels.ERROR)
+        return
+    end
     if M.active_job then
         notify.active_job("Build error")
         return
@@ -132,6 +136,10 @@ function M.quick_build(callback)
 end
 
 M.run = function(callback)
+    if project.root_dir == nil then
+        notify.configuration("You must be in a cmake project", vim.log.levels.ERROR)
+        return
+    end
     if M.active_job then
         notify.active_job("Run error")
         return
