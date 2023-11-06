@@ -232,14 +232,17 @@ function M.create_run_job(callback)
         command = ext_terminal,
         args = { unpack(args), "bash", "-c", project.selected_runnable.full_path ..
         " && " .. "read -n 1 -r -p \"\nPress any key to continue...\"" },
-        on_exit = function(_, code)
+        on_start = function()
+            --- The on_exit is only called when the console exits.
+            --- This enables the user to run more than one target.
             M.active_job = false
+        end,
+        on_exit = function(_, code)
             if code ~= 0 then
                 notify.run("Run failure", vim.log.levels.ERROR)
                 return
             end
 
-            notify.run("Run done", vim.log.levels.INFO)
             if type(callback) == "function" then
                 callback()
             end

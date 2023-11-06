@@ -5,7 +5,6 @@ local job = require("plenary.job")
 --- @field compilers cmake-kits.Compilers
 --- @field isTrusted boolean
 
-
 --- @class cmake-kits.KitsState
 --- @field kits cmake-kits.Kit[]
 --- @field selected_kit cmake-kits.Kit|string
