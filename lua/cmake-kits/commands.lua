@@ -5,7 +5,6 @@ local kits = require("cmake-kits.kits")
 local utils = require("cmake-kits.utils")
 local cmake_file_api = require("cmake-kits.cmake_file_api")
 local Path = require("plenary.path")
-local notify = require("cmake-kits.notify")
 local terminal = require("cmake-kits.terminal")
 
 local M = {}
@@ -13,14 +12,14 @@ local M = {}
 M.active_job = nil
 
 M.configure = function(callback)
-    if project.root_dir == nil then
-        notify.configuration("You must be in a cmake project", vim.log.levels.ERROR)
-        return
-    end
     if M.active_job then
-        notify.active_job("Configuration error")
+        utils.notify(
+            "Configuration error",
+            "You must wait for another command to finish to use this command"
+        )
         return
     end
+    terminal.clear()
 
     local build_dir = project.interpolate_string(config.build_directory)
     cmake_file_api.create_query(build_dir)
@@ -32,6 +31,7 @@ M.configure = function(callback)
         build_dir,
         "-G",
         config.generator,
+        unpack(config.configure_args),
         "-DCMAKE_BUILD_TYPE=" .. project.build_type,
     }
     if kits.selected_kit ~= "Unspecified" then
@@ -41,11 +41,6 @@ M.configure = function(callback)
         end
     end
 
-    for _, arg in ipairs(config.configure_args) do
-        table.insert(args, arg)
-    end
-
-    terminal.clear()
     M.active_job = true
     plenay_job
         :new({
@@ -64,27 +59,27 @@ M.configure = function(callback)
             on_exit = function(_, code)
                 M.active_job = false
                 if code ~= 0 then
-                    notify.configuration("Configuration failure", vim.log.levels.ERROR)
+                    utils.notify("Configuration", "Failure")
                     return
                 end
 
-                notify.configuration("Configuration done", vim.log.levels.INFO)
+                utils.notify("Configuration", "Sucessful", vim.log.levels.INFO)
+
                 if config.compile_commands_path then
-                    local build_file =
-                        io.open(vim.fs.joinpath(build_dir, "compile_commands.json"), "r")
-                    if build_file then
-                        local out_dir = project.interpolate_string(config.compile_commands_path)
-                        local out_file =
-                            io.open(vim.fs.joinpath(out_dir, "compile_commands.json"), "w+")
-                        if out_file then
-                            out_file:write(build_file:read("*a"))
-                            out_file:close()
-                        end
-                        build_file:close()
+                    local source = Path:new(build_dir) / "compile_commands.json"
+                    local destination =
+                        Path:new(project.interpolate_string(config.compile_commands_path))
+                    if destination:is_dir() then
+                        destination = destination / "compile_commands.json"
                     end
+                    source:copy({
+                        destination = destination,
+                    })
                 end
-                M.update_build_targets()
-                M.update_runnable_targets()
+
+                project.build_targets = cmake_file_api.get_build_targets(build_dir)
+                project.runnable_targets =
+                    cmake_file_api.get_runnable_targets(project.build_targets)
                 if type(callback) == "function" then
                     callback()
                 end
@@ -94,12 +89,11 @@ M.configure = function(callback)
 end
 
 M.build = function(callback)
-    if project.root_dir == nil then
-        notify.configuration("You must be in a cmake project", vim.log.levels.ERROR)
-        return
-    end
     if M.active_job then
-        notify.active_job("Build error")
+        utils.notify(
+            "Build error",
+            "You must wait for another command to finish to use this command"
+        )
         return
     end
 
@@ -124,11 +118,15 @@ end
 
 function M.quick_build(callback)
     if M.active_job then
-        notify.active_job("Build error")
+        utils.notify(
+            "Build error",
+            "You must wait for another command to finish to use this command"
+        )
         return
     end
     if project.selected_build == nil then
-        notify.build(
+        utils.notify(
+            "Build error",
             "You must select a build target before running CmakeQuickBuild",
             vim.log.levels.ERROR
         )
@@ -145,12 +143,8 @@ function M.quick_build(callback)
 end
 
 M.run = function(callback)
-    if project.root_dir == nil then
-        notify.configuration("You must be in a cmake project", vim.log.levels.ERROR)
-        return
-    end
     if M.active_job then
-        notify.active_job("Run error")
+        utils.notify("Run error", "You must wait for another command to finish to use this command")
         return
     end
 
@@ -177,11 +171,12 @@ end
 
 function M.quick_run(callback)
     if M.active_job then
-        notify.active_job("Run error")
+        utils.notify("Run error", "You must wait for another command to finish to use this command")
         return
     end
     if project.selected_runnable == nil then
-        notify.run(
+        utils.notify(
+            "Run error",
             "You must select a runnable target before running CmakeQuickRun",
             vim.log.levels.ERROR
         )
@@ -203,6 +198,7 @@ function M.create_build_job(build_dir, callback, target)
     if target == nil then
         target = {
             name = "all",
+            full_path = nil,
         }
     end
     M.active_job = true
@@ -223,11 +219,11 @@ function M.create_build_job(build_dir, callback, target)
             on_exit = function(_, code)
                 M.active_job = false
                 if code ~= 0 then
-                    notify.build("Build failure", vim.log.levels.ERROR)
+                    utils.notify("Build", "Build error")
                     return
                 end
 
-                notify.build("Build done", vim.log.levels.INFO)
+                utils.notify("Build", "Sucessful", vim.log.levels.INFO)
                 if type(callback) == "function" then
                     callback()
                 end
@@ -264,7 +260,7 @@ function M.create_run_job(callback)
             end,
             on_exit = function(_, code)
                 if code ~= 0 then
-                    notify.run("Run failure", vim.log.levels.ERROR)
+                    utils.notify("Run", "Exited with code " .. tostring(code))
                     return
                 end
 
@@ -274,50 +270,6 @@ function M.create_run_job(callback)
             end,
         })
         :start()
-end
-
-function M.update_build_targets()
-    project.build_targets = {}
-    local build_dir = project.interpolate_string(config.build_directory)
-    local reply_dir = Path:new(build_dir) / ".cmake" / "api" / "v1" / "reply"
-    local found = vim.fs.find(function(name, _)
-        return name:match("^target")
-    end, {
-        limit = math.huge,
-        path = tostring(reply_dir),
-    })
-
-    local target_all = {
-        name = "all",
-        full_path = nil,
-        type = nil,
-    }
-    table.insert(project.build_targets, target_all)
-    for _, path in ipairs(found) do
-        local file = io.open(path, "r")
-        if file then
-            local data = vim.json.decode(file:read("*a"))
-            --- @type cmake-kits.Target
-            if data.artifacts then
-                local target = {
-                    name = data.name,
-                    full_path = vim.fs.joinpath(build_dir, data.artifacts[1].path),
-                    type = data.type,
-                }
-                table.insert(project.build_targets, target)
-            end
-            file:close()
-        end
-    end
-end
-
-M.update_runnable_targets = function()
-    --- @param target cmake-kits.Target
-    project.runnable_targets = vim.iter(project.build_targets)
-        :filter(function(target)
-            return target.name ~= "all" and target.type ~= "STATIC_LIBRARY"
-        end)
-        :totable()
 end
 
 return M

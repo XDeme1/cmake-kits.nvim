@@ -20,4 +20,14 @@ M.get_cmake_root = function(path)
     return vim.fs.dirname(found[#found])
 end
 
+M.notify = function(title, message, log_level)
+    log_level = log_level or vim.log.levels.ERROR
+    vim.notify(message, log_level, {
+        title = title,
+        on_open = function(win)
+            vim.api.nvim_win_set_config(win, { focusable = false })
+        end,
+    })
+end
+
 return M
