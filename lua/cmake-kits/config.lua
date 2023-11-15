@@ -7,7 +7,6 @@
 --- @field compile_commands_path string? Path where compile_commands.json will be copied to.
 --- @field configure_args string[] Arguments that will be passed when configuring the project.
 --- @field build_args string[] Arguments that will be passed when building the specified target.
---- @field configure_on_open boolean
 local M = {}
 
 M.command = "cmake"
