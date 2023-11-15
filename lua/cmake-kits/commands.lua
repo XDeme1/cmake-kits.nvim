@@ -19,7 +19,9 @@ M.configure = function(callback)
         )
         return
     end
-    terminal.clear()
+    vim.schedule(function()
+        terminal.clear()
+    end)
 
     local build_dir = project.interpolate_string(config.build_directory)
     cmake_file_api.create_query(build_dir)
@@ -98,8 +100,10 @@ M.build = function(callback)
     end
 
     local build_dir = project.interpolate_string(config.build_directory)
-    if vim.fn.isdirectory(build_dir) == 0 then
-        return M.configure(M.build)
+    if vim.loop.fs_stat(build_dir).type ~= "directory" then
+        return M.configure(function()
+            M.build(callback)
+        end)
     end
 
     vim.ui.select(project.build_targets, {
@@ -125,16 +129,12 @@ function M.quick_build(callback)
         return
     end
     if project.selected_build == nil then
-        utils.notify(
-            "Build error",
-            "You must select a build target before running CmakeQuickBuild",
-            vim.log.levels.ERROR
-        )
+        utils.notify("Build error", "You must select a build target before running CmakeQuickBuild")
         return
     end
 
     local build_dir = project.interpolate_string(config.build_directory)
-    if vim.fn.isdirectory(build_dir) == 0 or vim.tbl_isempty(project.build_targets) then
+    if vim.loop.fs_stat(build_dir).type ~= "directory" then
         return M.configure(function()
             M.quick_build(callback)
         end)
@@ -149,8 +149,11 @@ M.run = function(callback)
     end
 
     local build_dir = project.interpolate_string(config.build_directory)
-    if vim.fn.isdirectory(build_dir) == 0 then
-        return M.configure(M.run)
+
+    if vim.loop.fs_stat(build_dir).type ~= "directory" then
+        return M.configure(function()
+            M.run(callback)
+        end)
     end
 
     vim.ui.select(project.runnable_targets, {
@@ -184,28 +187,31 @@ function M.quick_run(callback)
     end
 
     local build_dir = project.interpolate_string(config.build_directory)
-    if vim.fn.isdirectory(build_dir) == 0 or vim.tbl_isempty(project.runnable_targets) then
+    if vim.loop.fs_stat(build_dir).type ~= "directory" then
         return M.configure(function()
             M.quick_run(callback)
         end)
     end
 
-    M.create_run_job(callback)
+    M.create_build_job(build_dir, function()
+        M.create_run_job(callback)
+    end, project.selected_runnable)
 end
 
---- @param target cmake-kits.Target
+--- @param target cmake-kits.Target | nil
 function M.create_build_job(build_dir, callback, target)
-    if target == nil then
-        target = {
-            name = "all",
-            full_path = nil,
-        }
+    local target_name = nil
+    if target then
+        target_name = target.name
+    else
+        target_name = "all"
     end
+
     M.active_job = true
     plenay_job
         :new({
             command = config.command,
-            args = { "--build", build_dir, "--config", project.build_type, "--target", target.name },
+            args = { "--build", build_dir, "--config", project.build_type, "--target", target_name },
             on_stdout = function(_, data)
                 vim.schedule(function()
                     terminal.send_data("[build] " .. data)
@@ -233,13 +239,6 @@ function M.create_build_job(build_dir, callback, target)
 end
 
 function M.create_run_job(callback)
-    if not Path:new(project.selected_runnable.full_path):exists() then
-        local build_dir = project.interpolate_string(config.build_directory)
-        return M.create_build_job(build_dir, function()
-            M.create_run_job(callback)
-        end, project.selected_runnable)
-    end
-
     M.active_job = true
     local ext_terminal, args = utils.get_external_terminal()
     plenay_job

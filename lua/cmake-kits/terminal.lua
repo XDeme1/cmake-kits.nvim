@@ -132,14 +132,10 @@ function M.set_border_colors(bg, fg)
     if fg then
         terminal_state.window.border.foreground = fg
     end
-    vim.api.nvim_set_hl(
-        terminal_state.window.hightlight_ns,
-        "FloatBorder",
-        {
-            bg = terminal_state.window.border.background,
-            fg = terminal_state.window.border.foreground,
-        }
-    )
+    vim.api.nvim_set_hl(terminal_state.window.hightlight_ns, "FloatBorder", {
+        bg = terminal_state.window.border.background,
+        fg = terminal_state.window.border.foreground,
+    })
 end
 
 function M.set_title(text, pos)
