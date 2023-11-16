@@ -118,6 +118,7 @@ function M._setup_terminal(opts)
     vim.keymap.set("n", opts.terminal.toggle, function()
         if project.root_dir then
             terminal.toggle()
+            terminal.go_to_end()
         end
     end, {})
 end

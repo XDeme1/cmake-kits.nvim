@@ -30,6 +30,13 @@ function M.toggle()
     end
 end
 
+function M.go_to_end()
+    if not terminal_state.window.id then
+        return
+    end
+    vim.fn.win_execute(terminal_state.window.id, "norm G")
+end
+
 --- @param line string
 function M.send_data(line)
     vim.bo[terminal_state.buf_id].modifiable = true
@@ -61,7 +68,7 @@ function M.create_buffer()
 end
 
 function M.create_window()
-    terminal_state.window.id = vim.api.nvim_open_win(terminal_state.buf_id, false, {
+    terminal_state.window.id = vim.api.nvim_open_win(terminal_state.buf_id, true, {
         relative = "editor",
         row = 1000,
         col = 0,

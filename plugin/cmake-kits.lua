@@ -72,3 +72,7 @@ end, {})
 vim.api.nvim_create_user_command("CmakeQuickRun", function()
     commands.quick_run()
 end, {})
+
+vim.api.nvim_create_user_command("CmakeTest", function()
+    commands.test()
+end, {})

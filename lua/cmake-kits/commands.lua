@@ -198,6 +198,27 @@ function M.quick_run(callback)
     end, project.selected_runnable)
 end
 
+function M.test(callback)
+    if M.active_job then
+        utils.notify(
+            "Test error",
+            "You must wait for another command to finish to use this command"
+        )
+        return
+    end
+
+    local build_dir = project.interpolate_string(config.build_directory)
+    if vim.loop.fs_stat(build_dir).type ~= "directory" then
+        return M.configure(function()
+            M.test(callback)
+        end)
+    end
+
+    M.create_build_job(build_dir, function()
+        M.create_test_job(build_dir, callback)
+    end)
+end
+
 --- @param target cmake-kits.Target | nil
 function M.create_build_job(build_dir, callback, target)
     local target_name = nil
@@ -263,6 +284,45 @@ function M.create_run_job(callback)
                     return
                 end
 
+                if type(callback) == "function" then
+                    callback()
+                end
+            end,
+        })
+        :start()
+end
+
+function M.create_test_job(build_dir, callback)
+    M.active_job = true
+    plenay_job
+        :new({
+            command = config.command,
+            args = {
+                "--build",
+                build_dir,
+                "--config",
+                project.build_type,
+                "--target",
+                "test",
+            },
+            on_stdout = function(_, data)
+                vim.schedule(function()
+                    terminal.send_data(data)
+                end)
+            end,
+            on_stderr = function(_, data)
+                vim.schedule(function()
+                    terminal.send_data(data)
+                end)
+            end,
+            on_exit = function(_, code)
+                M.active_job = false
+                if code ~= 0 then
+                    utils.notify("Test", "Some tests failed")
+                    return
+                end
+
+                utils.notify("Test", "All tests passed", vim.log.levels.INFO)
                 if type(callback) == "function" then
                     callback()
                 end
