@@ -270,7 +270,7 @@ function M.create_run_job(callback)
                 "bash",
                 "-c",
                 project.selected_runnable.full_path
-                    .. " || "
+                    .. ";"
                     .. 'read -n 1 -r -p "\nPress any key to continue..."',
             },
             on_start = function()
