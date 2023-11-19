@@ -54,7 +54,7 @@ M.change_root_dir = function(dir)
     M.root_dir = dir
 end
 
-M.select_build_type = function()
+M.select_build_type = function(callback)
     vim.ui.select({ "Debug", "Release", "MinSizeRel", "RelWithDebInfo" }, {
         prompt = "Select a build type",
     }, function(choice)
@@ -62,6 +62,9 @@ M.select_build_type = function()
             return
         end
         M.build_type = choice
+        if type(callback) == "function" then
+            callback()
+        end
     end)
 end
 

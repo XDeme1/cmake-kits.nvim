@@ -40,7 +40,7 @@ vim.api.nvim_create_user_command("CmakeSelectBuildType", function(opts)
         project.build_type = opts.fargs[1]
         return
     end
-    project.select_build_type()
+    project.select_build_type(commands.configure)
 end, {
     nargs = "*",
     complete = function()
@@ -50,7 +50,7 @@ end, {
 })
 
 vim.api.nvim_create_user_command("CmakeSelectKit", function()
-    kits.select_kit()
+    kits.select_kit(commands.configure)
 end, {})
 
 vim.api.nvim_create_user_command("CmakeConfigure", function()

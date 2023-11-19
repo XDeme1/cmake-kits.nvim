@@ -13,7 +13,7 @@ local M = {}
 M.kits = {}
 M.selected_kit = "Unspecified"
 
-M.select_kit = function()
+M.select_kit = function(callback)
     local items = {
         { id = -1, name = "Scan for kits" },
         { id = 0, name = "Unspecified (Let CMake decide)" },
@@ -37,6 +37,9 @@ M.select_kit = function()
             return
         end
         M.selected_kit = M.kits[choice.id]
+        if type(callback) == "function" then
+            callback()
+        end
     end)
 end
 
