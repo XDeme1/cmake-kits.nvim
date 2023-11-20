@@ -22,12 +22,12 @@ M.build_args = {}
 return M
 
 --- Defaults
----M.command = "cmake"
----M.generator = "Ninja"
+--- M.command = "cmake"
+--- M.generator = "Ninja"
 
----M.build_directory = "build/${buildType}"
+--- M.build_directory = "${workspaceFolder}/build/${buildType}"
 
----M.compile_commands_path = "${workspaceFolder}"
+--- M.compile_commands_path = "${workspaceFolder}/compile_commands.json"
 
----M.configure_args = { "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" }
----M.build_args = {}
+--- M.configure_args = { "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" }
+--- M.build_args = {}

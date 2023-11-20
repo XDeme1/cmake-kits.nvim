@@ -4,22 +4,12 @@ local commands = require("cmake-kits.commands")
 local utils = require("cmake-kits.utils")
 local terminal = require("cmake-kits.terminal")
 
---- @class cmake-kits.WindowSettings.Title
---- @field text string?
---- @field pos string?
---- @field background string?
---- @field foreground string?
----
---- @class cmake-kits.WindowSettings.Border
---- @field background string?
---- @field foreground string?
-
 --- @class cmake-kits.WindowSettings
 --- @field toggle string?
+--- @field pos "bottom"|"center"
+--- @field styles table
 --- @field background string?
 --- @field foreground string?
---- @field title cmake-kits.WindowSettings.Title?
---- @field border cmake-kits.WindowSettings.Border?
 
 --- @class cmake-kits.SetupConfig : cmake-kits.CmakeConfig
 --- @field auto_root boolean Automatic detection and setting of root_dir.
@@ -38,17 +28,9 @@ local default = {
     configure_on_save = true,
     terminal = {
         toggle = "<C-c>",
-        background = "#111111",
-        foreground = "#FFFFFF",
-        title = {
-            text = "CMake Output",
-            pos = "left",
-            background = "#111111",
-            foreground = "#FFFFFF",
-        },
-        border = {
-            background = "#111111",
-            foreground = "#FFFFFF",
+        pos = "bottom",
+        styles = {
+            center = {},
         },
     },
 }
@@ -110,15 +92,12 @@ function M._setup_autocmds(opts)
 end
 
 function M._setup_terminal(opts)
-    terminal.set_title(opts.terminal.title.text, opts.terminal.title.pos)
-    terminal.set_window_colors(opts.terminal.background, opts.terminal.foreground)
-    terminal.set_title_colors(opts.terminal.title.background, opts.terminal.title.foreground)
-    terminal.set_border_colors(opts.terminal.border.background, opts.terminal.border.foreground)
+    terminal.setup(opts)
 
     vim.keymap.set("n", opts.terminal.toggle, function()
         if project.root_dir then
             terminal.toggle()
-            terminal.go_to_end()
+            terminal.scroll_end()
         end
     end, {})
 end
