@@ -27,10 +27,8 @@ M.configure = function(callback)
     cmake_file_api.create_query(build_dir)
 
     local args = {
-        "-S",
-        project.root_dir,
-        "-B",
-        build_dir,
+        "-S" .. project.root_dir,
+        "-B" .. build_dir,
         "-G",
         config.generator,
         unpack(config.configure_args),

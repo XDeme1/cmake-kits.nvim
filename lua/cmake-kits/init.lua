@@ -4,10 +4,17 @@ local commands = require("cmake-kits.commands")
 local utils = require("cmake-kits.utils")
 local terminal = require("cmake-kits.terminal")
 
+--- @class cmake-kits.WindowStyle
+--- @field row fun(): integer
+--- @field col fun(): integer
+--- @field width fun(): integer
+--- @field height fun(): integer
+--- @field border string[]
+
 --- @class cmake-kits.WindowSettings
 --- @field toggle string?
 --- @field pos "bottom"|"center"
---- @field styles table
+--- @field styles cmake-kits.WindowStyle
 --- @field background string?
 --- @field foreground string?
 
@@ -29,9 +36,6 @@ local default = {
     terminal = {
         toggle = "<C-c>",
         pos = "bottom",
-        styles = {
-            center = {},
-        },
     },
 }
 

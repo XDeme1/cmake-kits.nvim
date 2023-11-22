@@ -1,20 +1,40 @@
+local win = require("cmake-kits.window")
+
 local terminal_state = {
     buf_id = nil,
     win = {
         id = nil,
         pos = "bottom",
         styles = {
-            ["center"] = {
-                row = math.floor(vim.o.lines * (1 / 5)),
-                col = math.floor(vim.o.columns * (1 / 5)),
-                height = 22,
-                width = math.floor(vim.o.columns * (1 / 1.5)),
+            center = {
+                row = function()
+                    return math.floor(vim.o.lines * (1 / 5))
+                end,
+                col = function()
+                    return math.floor(vim.o.columns * (1 / 5))
+                end,
+                height = function()
+                    return 22
+                end,
+                width = function()
+                    return math.floor(vim.o.columns * (1 / 1.5))
+                end,
+                border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
             },
-            ["bottom"] = {
-                row = vim.o.lines - 15,
-                col = 0,
-                height = 13,
-                width = vim.o.columns - 2,
+            bottom = {
+                row = function()
+                    return vim.o.lines - vim.o.cmdheight - 15
+                end,
+                col = function()
+                    return 0
+                end,
+                height = function()
+                    return 13
+                end,
+                width = function()
+                    return vim.o.columns - 2
+                end,
+                border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
             },
         },
         background = nil,
@@ -29,22 +49,59 @@ function M.setup(opts)
     M.create_buffer()
     opts = opts or {}
     opts.terminal = opts.terminal or {}
-
     if opts.terminal.styles then
         terminal_state.win.styles =
             vim.tbl_deep_extend("force", terminal_state.win.styles, opts.terminal.styles)
     end
+
     terminal_state.win.pos = opts.terminal.pos or terminal_state.win.pos
-    terminal_state.win.background = opts.terminal.background
-    terminal_state.win.foreground = opts.terminal.foreground
+end
+
+function M.open()
+    terminal_state.win.id = win.create(terminal_state.buf_id, {
+        enter = true,
+        col = terminal_state.win.styles[terminal_state.win.pos].col(),
+        row = terminal_state.win.styles[terminal_state.win.pos].row(),
+        height = terminal_state.win.styles[terminal_state.win.pos].height(),
+        width = terminal_state.win.styles[terminal_state.win.pos].width(),
+        border = terminal_state.win.styles[terminal_state.win.pos].border,
+    })
+
+    vim.api.nvim_create_autocmd("WinClosed", {
+        buffer = terminal_state.buf_id,
+        callback = function()
+            terminal_state.win.id = nil
+        end,
+    })
+
+    --- TODO: Neovide doesnt auto resize float window
+    if vim.g.neovide then
+        vim.api.nvim_create_autocmd("WinResized", {
+            callback = function()
+                if terminal_state.win.id then
+                    vim.api.nvim_win_set_config(terminal_state.win.id, {
+                        relative = "editor",
+                        col = terminal_state.win.styles[terminal_state.win.pos].col(),
+                        row = terminal_state.win.styles[terminal_state.win.pos].row(),
+                        height = terminal_state.win.styles[terminal_state.win.pos].height(),
+                        width = terminal_state.win.styles[terminal_state.win.pos].width(),
+                    })
+                end
+            end,
+        })
+    end
+end
+
+function M.close()
+    vim.api.nvim_win_close(terminal_state.win.id, true)
+    terminal_state.win.id = nil
 end
 
 function M.toggle()
     if not terminal_state.win.id then
-        M.create_window()
+        M.open()
     else
-        vim.api.nvim_win_close(terminal_state.win.id, true)
-        terminal_state.win.id = nil
+        M.close()
     end
 end
 
@@ -85,42 +142,17 @@ function M.create_buffer()
     vim.bo[terminal_state.buf_id].modifiable = false
 end
 
-function M.create_window()
-    terminal_state.win.id = vim.api.nvim_open_win(terminal_state.buf_id, true, {
-        relative = "editor",
-        row = terminal_state.win.styles[terminal_state.win.pos].row,
-        col = terminal_state.win.styles[terminal_state.win.pos].col,
-        width = terminal_state.win.styles[terminal_state.win.pos].width,
-        height = terminal_state.win.styles[terminal_state.win.pos].height,
-        style = "minimal",
-        border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-    })
-
-    vim.api.nvim_win_set_hl_ns(terminal_state.win.id, terminal_state.hl_ns)
-    vim.api.nvim_set_hl(terminal_state.hl_ns, "NormalFloat", {
-        bg = terminal_state.win.background,
-        fg = terminal_state.win.foreground,
-    })
-    vim.api.nvim_set_hl(
-        terminal_state.hl_ns,
-        "EndOfBuffer",
-        { bg = terminal_state.win.background, fg = terminal_state.win.foreground }
-    )
-
-    vim.api.nvim_create_autocmd("WinClosed", {
-        buffer = terminal_state.buf_id,
-        callback = function()
-            terminal_state.win.id = nil
-        end,
-    })
-end
-
 function M.set_position(pos)
     terminal_state.win.pos = pos
     if terminal_state.win.id then
         vim.api.nvim_win_close(terminal_state.win.id, true)
         M.create_window()
     end
+end
+
+function M.update_size(width, height)
+    terminal_state.win.styles.bottom.width = width
+    terminal_state.win.styles.bottom.height = height
 end
 
 return M
