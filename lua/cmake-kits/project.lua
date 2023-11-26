@@ -16,6 +16,7 @@ local Path = require("plenary.path")
 --- @class cmake-kits.ProjectState Table holding the state of the cmake project
 --- @field root_dir string? Path to the root project
 --- @field build_type cmake-kits.BuildVariant
+--- @field selected_kit cmake-kits.Kit|string
 ---
 --- @field build_targets cmake-kits.Target[]
 --- @field selected_build cmake-kits.Target?
@@ -26,6 +27,7 @@ local M = {}
 
 M.root_dir = nil
 M.build_type = "Debug"
+M.selected_kit = "Unspecified"
 
 M.build_targets = {}
 M.selected_build = nil
@@ -54,7 +56,8 @@ M.change_root_dir = function(dir)
     M.root_dir = dir
 end
 
-M.select_build_type = function(callback)
+--- @param on_select fun(selected: cmake-kits.BuildVariant)?
+M.select_build_type = function(on_select)
     vim.ui.select({ "Debug", "Release", "MinSizeRel", "RelWithDebInfo" }, {
         prompt = "Select a build type",
     }, function(choice)
@@ -62,8 +65,57 @@ M.select_build_type = function(callback)
             return
         end
         M.build_type = choice
-        if type(callback) == "function" then
-            callback()
+        if type(on_select) == "function" then
+            on_select(choice)
+        end
+    end)
+end
+
+--- @param on_select fun(selected: cmake-kits.Target)?
+M.select_build_target = function(on_select)
+    vim.ui.select(M.build_targets, {
+        prompt = "Select build target",
+        format_item = function(target)
+            return target.name
+        end,
+    }, function(choice)
+        if choice == nil then
+            return
+        end
+        M.selected_build = choice
+        if type(on_select) == "function" then
+            on_select(choice)
+        end
+    end)
+end
+
+--- @param on_select fun(selected: cmake-kits.Kit)?
+M.select_kit = function(on_select)
+    local items = {
+        { id = -1, name = "Scan for kits" },
+        { id = 0, name = "Unspecified (Let CMake decide)" },
+    }
+    for i, kit in ipairs(kits.kits) do
+        table.insert(items, { id = i, name = kit.name })
+    end
+    vim.ui.select(items, {
+        prompt = "Select a kit",
+        format_item = function(item)
+            return item.name
+        end,
+    }, function(choice)
+        if choice == nil then
+            return
+        elseif choice.id == -1 then
+            kits.scan_for_kits()
+            return
+        elseif choice.id == 0 then
+            M.selected_kit = "Unspecified"
+            return
+        end
+        M.selected_kit = kits.kits[choice.id]
+        if type(on_select) == "function" then
+            on_select(choice)
         end
     end)
 end
@@ -94,7 +146,7 @@ M.save_project = function()
                 runnable_targets = M.runnable_targets,
                 selected_build = M.selected_build,
                 selected_runnable = M.selected_runnable,
-                selected_kit = kits.selected_kit,
+                selected_kit = M.selected_kit,
             },
         },
     }

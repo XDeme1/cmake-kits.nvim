@@ -34,10 +34,10 @@ M.configure = function(callback)
         unpack(config.configure_args),
         "-DCMAKE_BUILD_TYPE=" .. project.build_type,
     }
-    if kits.selected_kit ~= "Unspecified" then
-        table.insert(args, "-DCMAKE_C_COMPILER=" .. kits.selected_kit.compilers.C) -- C compiler is guaranteed to exist
-        if kits.selected_kit.compilers.CXX then
-            table.insert(args, "-DCMAKE_CXX_COMPILER=" .. kits.selected_kit.compilers.CXX)
+    if project.selected_kit ~= "Unspecified" then
+        table.insert(args, "-DCMAKE_C_COMPILER=" .. project.selected_kit.compilers.C) -- C compiler is guaranteed to exist
+        if project.selected_kit.compilers.CXX then
+            table.insert(args, "-DCMAKE_CXX_COMPILER=" .. project.selected_kit.compilers.CXX)
         end
     end
 
@@ -104,17 +104,8 @@ M.build = function(callback)
         end)
     end
 
-    vim.ui.select(project.build_targets, {
-        prompt = "Select build target",
-        format_item = function(target)
-            return target.name
-        end,
-    }, function(choice)
-        if choice == nil then
-            return
-        end
-        project.selected_build = choice
-        M.create_build_job(build_dir, callback, choice)
+    project.select_build_target(function(selected)
+        M.create_build_job(build_dir, callback, selected)
     end)
 end
 

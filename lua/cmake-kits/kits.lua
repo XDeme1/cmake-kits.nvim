@@ -7,41 +7,9 @@ local job = require("plenary.job")
 
 --- @class cmake-kits.KitsState
 --- @field kits cmake-kits.Kit[]
---- @field selected_kit cmake-kits.Kit|string
 local M = {}
 
 M.kits = {}
-M.selected_kit = "Unspecified"
-
-M.select_kit = function(callback)
-    local items = {
-        { id = -1, name = "Scan for kits" },
-        { id = 0, name = "Unspecified (Let CMake decide)" },
-    }
-    for i, kit in ipairs(M.kits) do
-        table.insert(items, { id = i, name = kit.name })
-    end
-    vim.ui.select(items, {
-        prompt = "Select a kit",
-        format_item = function(item)
-            return item.name
-        end,
-    }, function(choice)
-        if choice == nil then
-            return
-        elseif choice.id == -1 then
-            M.scan_for_kits()
-            return
-        elseif choice.id == 0 then
-            M.selected_kit = "Unspecified"
-            return
-        end
-        M.selected_kit = M.kits[choice.id]
-        if type(callback) == "function" then
-            callback()
-        end
-    end)
-end
 
 M.load_kits = function()
     local vscode_path = vim.fs.normalize("$HOME")
@@ -129,7 +97,7 @@ M.scan_for_kits = function()
     if timer ~= nil then
         timer:start(0, 50, function()
             if M.create_kit.job_count == 0 then
-                for compiler, kits in pairs(compilers) do
+                for compiler, _ in pairs(compilers) do
                     table.sort(compilers[compiler], function(a, b)
                         return a.name < b.name
                     end)
