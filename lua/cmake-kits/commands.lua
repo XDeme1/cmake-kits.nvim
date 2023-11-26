@@ -1,7 +1,6 @@
 local project = require("cmake-kits.project")
 local config = require("cmake-kits.config")
 local plenay_job = require("plenary.job")
-local kits = require("cmake-kits.kits")
 local utils = require("cmake-kits.utils")
 local cmake_file_api = require("cmake-kits.cmake_file_api")
 local Path = require("plenary.path")
@@ -10,6 +9,12 @@ local terminal = require("cmake-kits.terminal")
 local M = {}
 
 M.active_job = nil
+
+M.interupt_job = function()
+    if M.active_job then
+        M.active_job:shutdown()
+    end
+end
 
 M.configure = function(callback)
     if M.active_job then
@@ -41,51 +46,52 @@ M.configure = function(callback)
         end
     end
 
-    M.active_job = true
-    plenay_job
-        :new({
-            command = config.command,
-            args = args,
-            on_stdout = function(_, data)
+    M.active_job = plenay_job:new({
+        command = config.command,
+        args = args,
+        on_stdout = function(_, data)
+            if data then
                 vim.schedule(function()
                     terminal.send_data("[configure] " .. data)
                 end)
-            end,
-            on_stderr = function(_, data)
+            end
+        end,
+        on_stderr = function(_, data)
+            if data then
                 vim.schedule(function()
                     terminal.send_data("[configure] " .. data)
                 end)
-            end,
-            on_exit = function(_, code)
-                M.active_job = false
-                if code ~= 0 then
-                    utils.notify("Configuration", "Failure")
-                    return
-                end
+            end
+        end,
+        on_exit = function(_, code)
+            M.active_job = nil
+            if code ~= 0 then
+                utils.notify("Configuration", "Failure")
+                return
+            end
 
-                utils.notify("Configuration", "Sucessful", vim.log.levels.INFO)
+            utils.notify("Configuration", "Sucessful", vim.log.levels.INFO)
 
-                if config.compile_commands_path then
-                    local source = Path:new(build_dir) / "compile_commands.json"
-                    local destination =
-                        Path:new(project.interpolate_string(config.compile_commands_path))
-                    if destination:is_dir() then
-                        destination = destination / "compile_commands.json"
-                    end
-                    source:copy({
-                        destination = destination,
-                    })
+            if config.compile_commands_path then
+                local source = Path:new(build_dir) / "compile_commands.json"
+                local destination =
+                    Path:new(project.interpolate_string(config.compile_commands_path))
+                if destination:is_dir() then
+                    destination = destination / "compile_commands.json"
                 end
+                source:copy({
+                    destination = destination,
+                })
+            end
 
-                project.build_targets = cmake_file_api.get_build_targets(build_dir)
-                project.runnable_targets =
-                    cmake_file_api.get_runnable_targets(project.build_targets)
-                if type(callback) == "function" then
-                    callback()
-                end
-            end,
-        })
-        :start()
+            project.build_targets = cmake_file_api.get_build_targets(build_dir)
+            project.runnable_targets = cmake_file_api.get_runnable_targets(project.build_targets)
+            if type(callback) == "function" then
+                callback()
+            end
+        end,
+    })
+    M.active_job:start()
 end
 
 M.build = function(callback)
@@ -217,107 +223,101 @@ function M.create_build_job(build_dir, callback, target)
         target_name = "all"
     end
 
-    M.active_job = true
-    plenay_job
-        :new({
-            command = config.command,
-            args = { "--build", build_dir, "--config", project.build_type, "--target", target_name },
-            on_stdout = function(_, data)
-                vim.schedule(function()
-                    terminal.send_data("[build] " .. data)
-                end)
-            end,
-            on_stderr = function(_, data)
-                vim.schedule(function()
-                    terminal.send_data("[build] " .. data)
-                end)
-            end,
-            on_exit = function(_, code)
-                M.active_job = false
-                if code ~= 0 then
-                    utils.notify("Build", "Build error")
-                    return
-                end
+    M.active_job = plenay_job:new({
+        command = config.command,
+        args = { "--build", build_dir, "--config", project.build_type, "--target", target_name },
+        on_stdout = function(_, data)
+            vim.schedule(function()
+                terminal.send_data("[build] " .. data)
+            end)
+        end,
+        on_stderr = function(_, data)
+            vim.schedule(function()
+                terminal.send_data("[build] " .. data)
+            end)
+        end,
+        on_exit = function(_, code)
+            M.active_job = nil
+            if code ~= 0 then
+                utils.notify("Build", "Build error")
+                return
+            end
 
-                utils.notify("Build", "Sucessful", vim.log.levels.INFO)
-                if type(callback) == "function" then
-                    callback()
-                end
-            end,
-        })
-        :start()
+            utils.notify("Build", "Sucessful", vim.log.levels.INFO)
+            if type(callback) == "function" then
+                callback()
+            end
+        end,
+    })
+    M.active_job:start()
 end
 
 function M.create_run_job(callback)
-    M.active_job = true
     local ext_terminal, args = utils.get_external_terminal()
-    plenay_job
-        :new({
-            command = ext_terminal,
-            args = {
-                unpack(args),
-                "bash",
-                "-c",
-                project.selected_runnable.full_path
-                    .. ";"
-                    .. 'read -n 1 -r -p "\nPress any key to continue..."',
-            },
-            on_start = function()
-                --- The on_exit is only called when the console exits.
-                --- This enables the user to run more than one target.
-                M.active_job = false
-            end,
-            on_exit = function(_, code)
-                if code ~= 0 then
-                    utils.notify("Run", "Exited with code " .. tostring(code))
-                    return
-                end
+    M.active_job = plenay_job:new({
+        command = ext_terminal,
+        args = {
+            unpack(args),
+            "bash",
+            "-c",
+            project.selected_runnable.full_path
+                .. ";"
+                .. 'read -n 1 -r -p "\nPress any key to continue..."',
+        },
+        on_start = function()
+            --- The on_exit is only called when the console exits.
+            --- This enables the user to run more than one target.
+            M.active_job = nil
+        end,
+        on_exit = function(_, code)
+            if code ~= 0 then
+                utils.notify("Run", "Exited with code " .. tostring(code))
+                return
+            end
 
-                if type(callback) == "function" then
-                    callback()
-                end
-            end,
-        })
-        :start()
+            if type(callback) == "function" then
+                callback()
+            end
+        end,
+    })
+    M.active_job:start()
 end
 
 function M.create_test_job(build_dir, callback)
-    M.active_job = true
-    plenay_job
-        :new({
-            command = config.command,
-            args = {
-                "--build",
-                build_dir,
-                "--config",
-                project.build_type,
-                "--target",
-                "test",
-            },
-            on_stdout = function(_, data)
-                vim.schedule(function()
-                    terminal.send_data(data)
-                end)
-            end,
-            on_stderr = function(_, data)
-                vim.schedule(function()
-                    terminal.send_data(data)
-                end)
-            end,
-            on_exit = function(_, code)
-                M.active_job = false
-                if code ~= 0 then
-                    utils.notify("Test", "Some tests failed")
-                    return
-                end
+    M.active_job = plenay_job:new({
+        command = config.command,
+        args = {
+            "--build",
+            build_dir,
+            "--config",
+            project.build_type,
+            "--target",
+            "test",
+        },
+        on_stdout = function(_, data)
+            vim.schedule(function()
+                terminal.send_data(data)
+            end)
+        end,
+        on_stderr = function(_, data)
+            vim.schedule(function()
+                terminal.send_data(data)
+            end)
+        end,
+        on_exit = function(_, code)
+            M.active_job = nil
+            if code ~= 0 then
+                utils.notify("Test", "Some tests failed")
+                return
+            end
 
-                utils.notify("Test", "All tests passed", vim.log.levels.INFO)
-                if type(callback) == "function" then
-                    callback()
-                end
-            end,
-        })
-        :start()
+            utils.notify("Test", "All tests passed", vim.log.levels.INFO)
+            if type(callback) == "function" then
+                callback()
+            end
+        end,
+    })
+    M.active_job:start()
 end
 
 return M

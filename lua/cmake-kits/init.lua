@@ -72,6 +72,9 @@ function M._setup_autocmds(opts)
             end
             if root_dir == nil then
                 project.save_project()
+                project.clear_state()
+                commands.interupt_job()
+                return
             end
             if opts.auto_root then
                 project.change_root_dir(root_dir)
@@ -80,19 +83,11 @@ function M._setup_autocmds(opts)
                     opts.on_root_change(project.root_dir)
                 end
             end
+            if opts.configure_on_open then
+                commands.configure()
+            end
         end,
     })
-
-    if opts.configure_on_open then
-        vim.api.nvim_create_autocmd("DirChanged", {
-            group = vim.api.nvim_create_augroup("CmakeConfigOnOpen", {}),
-            callback = function()
-                if project.root_dir and not commands.active_job then
-                    commands.configure()
-                end
-            end,
-        })
-    end
 end
 
 function M._setup_terminal(opts)

@@ -25,22 +25,24 @@ local Path = require("plenary.path")
 --- @field selected_runnable cmake-kits.Target?
 local M = {}
 
-M.root_dir = nil
-M.build_type = "Debug"
-M.selected_kit = "Unspecified"
-
-M.build_targets = {}
-M.selected_build = nil
-
-M.runnable_targets = {}
-M.selected_runnable = nil
-
 --- Used to substitute ${workspaceFolder} and ${buildType} with the correct string
 --- @param path string
 M.interpolate_string = function(path)
     path = path:gsub("${workspaceFolder}", M.root_dir)
     path = path:gsub("${buildType}", M.build_type)
     return path
+end
+
+M.clear_state = function()
+    M.root_dir = nil
+    M.build_type = "Debug"
+    M.selected_kit = "Unspecified"
+
+    M.build_targets = {}
+    M.selected_build = nil
+
+    M.runnable_targets = {}
+    M.selected_runnable = nil
 end
 
 M.change_root_dir = function(dir)
@@ -169,4 +171,7 @@ M.save_project = function()
         file:close()
     end
 end
+
+M.clear_state()
+
 return M
