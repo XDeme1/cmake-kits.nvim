@@ -151,19 +151,10 @@ M.run = function(callback)
         end)
     end
 
-    vim.ui.select(project.runnable_targets, {
-        prompt = "Select a target to run",
-        format_item = function(target)
-            return target.name
-        end,
-    }, function(choice)
-        if choice == nil then
-            return
-        end
-        project.selected_runnable = choice
+    project.select_runnable_target(function(selected)
         M.create_build_job(build_dir, function()
             M.create_run_job(callback)
-        end, project.selected_runnable)
+        end, selected)
     end)
 end
 

@@ -1,3 +1,4 @@
+local config = require("cmake-kits.config")
 local kits = require("cmake-kits.kits")
 local Path = require("plenary.path")
 
@@ -45,6 +46,19 @@ M.clear_state = function()
     M.selected_runnable = nil
 end
 
+--- @return boolean
+M.has_ctest = function()
+    if not M.root_dir then
+        return false
+    end
+    local ctest_path = Path:new(M.interpolate_string(config.build_directory))
+        / "CTestTestfile.cmake"
+    if ctest_path:exists() then
+        return true
+    end
+    return false
+end
+
 M.change_root_dir = function(dir)
     if dir == nil then
         M.root_dir = dir
@@ -85,6 +99,24 @@ M.select_build_target = function(on_select)
             return
         end
         M.selected_build = choice
+        if type(on_select) == "function" then
+            on_select(choice)
+        end
+    end)
+end
+
+--- @param on_select fun(selected: cmake-kits.Target)?
+M.select_runnable_target = function(on_select)
+    vim.ui.select(M.runnable_targets, {
+        prompt = "Select a target to run",
+        format_item = function(target)
+            return target.name
+        end,
+    }, function(choice)
+        if choice == nil then
+            return
+        end
+        M.selected_runnable = choice
         if type(on_select) == "function" then
             on_select(choice)
         end
