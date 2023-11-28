@@ -16,7 +16,7 @@ M.interupt_job = function()
     end
 end
 
-M.configure = function(callback)
+M.configure = function(callback, fresh)
     if M.active_job then
         utils.notify(
             "Configuration error",
@@ -32,6 +32,7 @@ M.configure = function(callback)
     cmake_file_api.create_query(build_dir)
 
     local args = {
+        (fresh and "--fresh") or "",
         "-S" .. project.root_dir,
         "-B" .. build_dir,
         "-G",

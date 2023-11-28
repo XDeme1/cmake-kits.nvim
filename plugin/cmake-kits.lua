@@ -48,7 +48,10 @@ end, {
 })
 
 vim.api.nvim_create_user_command("CmakeSelectKit", function()
-    project.select_kit(commands.configure)
+    project.select_kit(function(prev, selected)
+        local fresh = prev ~= selected
+        commands.configure(nil, fresh)
+    end)
 end, {})
 
 vim.api.nvim_create_user_command("CmakeConfigure", function()

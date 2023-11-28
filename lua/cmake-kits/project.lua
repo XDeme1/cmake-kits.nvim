@@ -123,7 +123,7 @@ M.select_runnable_target = function(on_select)
     end)
 end
 
---- @param on_select fun(selected: cmake-kits.Kit)?
+--- @param on_select fun(previous: cmake-kits.Kit|string, selected: cmake-kits.Kit)?
 M.select_kit = function(on_select)
     local items = {
         { id = -1, name = "Scan for kits" },
@@ -147,9 +147,10 @@ M.select_kit = function(on_select)
             M.selected_kit = "Unspecified"
             return
         end
+        local prev = M.selected_kit
         M.selected_kit = kits.kits[choice.id]
         if type(on_select) == "function" then
-            on_select(choice)
+            on_select(prev, choice)
         end
     end)
 end
