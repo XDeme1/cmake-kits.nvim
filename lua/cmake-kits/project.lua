@@ -1,6 +1,7 @@
 local config = require("cmake-kits.config")
 local kits = require("cmake-kits.kits")
 local Path = require("plenary.path")
+local utils = require("cmake-kits.utils")
 
 --- @alias cmake-kits.BuildVariant "Debug" | "Release" | "MinSizeRel" | "RelWithDebInfo"
 --- @alias cmake-kits.TargetType "EXECUTABLE" | "STATIC_LIBRARY"
@@ -63,17 +64,14 @@ M.has_ctest = function()
     return false
 end
 
-M.change_root_dir = function(dir)
-    if dir == nil then
-        M.root_dir = dir
-        return
-    end
-    local cmake_file = Path:new(dir) / "CMakeLists.txt"
-    if not cmake_file:exists() then
-        vim.notify(dir .. " is not a valid cmake root dir", vim.log.levels.ERROR, nil)
+M.set_root_dir = function(dir)
+    if not utils.is_cmake_project(dir) then
+        M.save_project()
+        M.clear_state()
         return
     end
     M.root_dir = dir
+    M.load_project()
 end
 
 --- @param on_select fun(selected: cmake-kits.BuildVariant)?

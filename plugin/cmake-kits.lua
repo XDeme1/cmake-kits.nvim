@@ -24,8 +24,7 @@ vim.api.nvim_create_user_command("CmakeSetRootDir", function()
         if input == nil then
             return
         end
-        project.change_root_dir(cwd)
-        project.load_project()
+        project.set_root_dir(input)
     end)
 end, {})
 

@@ -60,25 +60,6 @@ function M._setup_autocmds(opts)
             end,
         })
     end
-
-    vim.api.nvim_create_autocmd("DirChanged", {
-        group = vim.api.nvim_create_augroup("CmakeAuto", {}),
-        callback = function(ev)
-            local root_dir = utils.get_cmake_root(ev.file)
-            if root_dir == project.root_dir then
-                return
-            end
-            if root_dir == nil then
-                project.save_project()
-                project.clear_state()
-                commands.interupt_job()
-                return
-            end
-            if opts.configure_on_open and project.root_dir then
-                commands.configure()
-            end
-        end,
-    })
 end
 
 function M._setup_terminal(opts)
