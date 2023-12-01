@@ -29,8 +29,6 @@ local M = {}
 
 --- @type cmake-kits.SetupConfig
 local default = {
-    auto_root = true,
-    on_root_change = nil,
     configure_on_open = true,
     configure_on_save = true,
     terminal = {
@@ -75,13 +73,6 @@ function M._setup_autocmds(opts)
                 project.clear_state()
                 commands.interupt_job()
                 return
-            end
-            if opts.auto_root then
-                project.change_root_dir(root_dir)
-                project.load_project()
-                if opts.on_root_change then
-                    opts.on_root_change(project.root_dir)
-                end
             end
             if opts.configure_on_open and project.root_dir then
                 commands.configure()
