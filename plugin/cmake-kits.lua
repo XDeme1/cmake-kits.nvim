@@ -59,11 +59,11 @@ vim.api.nvim_create_user_command("CmakeConfigure", function()
 end, {})
 
 vim.api.nvim_create_user_command("CmakeBuild", function()
-    commands.build()
+    commands.build(false, {})
 end, {})
 
 vim.api.nvim_create_user_command("CmakeQuickBuild", function()
-    commands.quick_build()
+    commands.build(true, {})
 end, {})
 
 vim.api.nvim_create_user_command("CmakeRun", function()

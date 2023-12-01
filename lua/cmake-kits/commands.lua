@@ -18,8 +18,8 @@ end
 
 --- @class cmake-kits.Configure
 --- @field fresh boolean?
---- @field on_exit fun()
---- @param opts cmake-kits.Configure
+--- @field on_exit fun()?
+--- @param opts cmake-kits.Configure?
 M.configure = function(opts)
     if M.active_job then
         utils.notify(
@@ -95,7 +95,12 @@ M.configure = function(opts)
     M.active_job:start()
 end
 
-M.build = function(callback)
+--- @class cmake-kits.Build
+--- @field on_exit fun()?
+
+--- @param quick boolean builds the already selected build target
+--- @param opts cmake-kits.Build
+M.build = function(quick, opts)
     if M.active_job then
         utils.notify(
             "Build error",
@@ -103,39 +108,28 @@ M.build = function(callback)
         )
         return
     end
-
     local build_dir = project.interpolate_string(config.build_directory)
-    if vim.loop.fs_stat(build_dir).type ~= "directory" then
-        return M.configure(function()
-            M.build(callback)
+    if vim.loop.fs_stat(build_dir).type ~= "directory" then --- configure when there is no build directory
+        return M.configure({
+            on_exit = function()
+                M.build(quick, opts)
+            end,
+        })
+    end
+
+    if quick then
+        M.create_build_job(build_dir, project.build_type, {
+            on_exit = opts.on_exit,
+            target = project.selected_build,
+        })
+    else
+        project.select_build_target(function()
+            M.create_build_job(build_dir, project.build_type, {
+                on_exit = opts.on_exit,
+                target = project.selected_build,
+            })
         end)
     end
-
-    project.select_build_target(function(selected)
-        M.create_build_job(build_dir, callback, selected)
-    end)
-end
-
-function M.quick_build(callback)
-    if M.active_job then
-        utils.notify(
-            "Build error",
-            "You must wait for another command to finish to use this command"
-        )
-        return
-    end
-    if project.selected_build == nil then
-        utils.notify("Build error", "You must select a build target before running CmakeQuickBuild")
-        return
-    end
-
-    local build_dir = project.interpolate_string(config.build_directory)
-    if vim.loop.fs_stat(build_dir).type ~= "directory" then
-        return M.configure(function()
-            M.quick_build(callback)
-        end)
-    end
-    M.create_build_job(build_dir, callback, project.selected_build)
 end
 
 M.run = function(callback)
@@ -206,18 +200,30 @@ function M.test(callback)
     end)
 end
 
---- @param target cmake-kits.Target | nil
-function M.create_build_job(build_dir, callback, target)
-    local target_name = nil
-    if target then
-        target_name = target.name
-    else
-        target_name = "all"
-    end
+--- @class cmake-kits.Job
+--- @field on_exit fun()?
+--- @field target cmake-kits.Target?
+
+--- @param build_dir string
+--- @param build_type cmake-kits.BuildVariant
+--- @param opts cmake-kits.Job?
+function M.create_build_job(build_dir, build_type, opts)
+    opts = opts or {}
+
+    local args = {
+        "--build",
+        build_dir,
+        "--config",
+        build_type,
+        "--target",
+        ((opts.target and opts.target.name) or "all"),
+    }
+
+    vim.list_extend(args, config.build_args)
 
     M.active_job = plenay_job:new({
         command = config.command,
-        args = { "--build", build_dir, "--config", project.build_type, "--target", target_name },
+        args = args,
         on_stdout = function(_, data)
             vim.schedule(function()
                 terminal.send_data("[build] " .. data)
@@ -236,8 +242,10 @@ function M.create_build_job(build_dir, callback, target)
             end
 
             utils.notify("Build", "Sucessful", vim.log.levels.INFO)
-            if type(callback) == "function" then
-                callback()
+            if type(opts.on_exit) == "function" then
+                vim.schedule(function()
+                    opts.on_exit()
+                end)
             end
         end,
     })

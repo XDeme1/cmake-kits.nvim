@@ -11,8 +11,8 @@ local Path = require("plenary.path")
 
 ---@class cmake-kits.Target
 ---@field name string
----@field full_path string
----@field type cmake-kits.TargetType
+---@field full_path string?
+---@field type cmake-kits.TargetType?
 
 --- @class cmake-kits.ProjectState Table holding the state of the cmake project
 --- @field root_dir string? Path to the root project
@@ -20,7 +20,7 @@ local Path = require("plenary.path")
 --- @field selected_kit cmake-kits.Kit|string
 ---
 --- @field build_targets cmake-kits.Target[]
---- @field selected_build cmake-kits.Target?
+--- @field selected_build cmake-kits.Target
 ---
 --- @field runnable_targets cmake-kits.Target[]
 --- @field selected_runnable cmake-kits.Target?
@@ -40,7 +40,9 @@ M.clear_state = function()
     M.selected_kit = "Unspecified"
 
     M.build_targets = {}
-    M.selected_build = nil
+    M.selected_build = {
+        name = "all",
+    }
 
     M.runnable_targets = {}
     M.selected_runnable = nil
