@@ -17,7 +17,7 @@ local Path = require("plenary.path")
 --- @class cmake-kits.ProjectState Table holding the state of the cmake project
 --- @field root_dir string? Path to the root project
 --- @field build_type cmake-kits.BuildVariant
---- @field selected_kit cmake-kits.Kit|string
+--- @field selected_kit cmake-kits.Kit
 ---
 --- @field build_targets cmake-kits.Target[]
 --- @field selected_build cmake-kits.Target
@@ -37,7 +37,9 @@ end
 M.clear_state = function()
     M.root_dir = nil
     M.build_type = "Debug"
-    M.selected_kit = "Unspecified"
+    M.selected_kit = {
+        name = "Unspecified",
+    }
 
     M.build_targets = {}
     M.selected_build = {
@@ -125,7 +127,7 @@ M.select_runnable_target = function(on_select)
     end)
 end
 
---- @param on_select fun(previous: cmake-kits.Kit|string, selected: cmake-kits.Kit)?
+--- @param on_select fun(selected: cmake-kits.Kit)?
 M.select_kit = function(on_select)
     local items = {
         { id = -1, name = "Scan for kits" },
@@ -146,13 +148,14 @@ M.select_kit = function(on_select)
             kits.scan_for_kits()
             return
         elseif choice.id == 0 then
-            M.selected_kit = "Unspecified"
+            M.selected_kit = {
+                name = "Unspecified",
+            }
             return
         end
-        local prev = M.selected_kit
         M.selected_kit = kits.kits[choice.id]
         if type(on_select) == "function" then
-            on_select(prev, choice)
+            on_select(choice)
         end
     end)
 end

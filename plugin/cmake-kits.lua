@@ -7,18 +7,14 @@ kits.load_kits()
 vim.api.nvim_create_autocmd("VimLeavePre", {
     group = vim.api.nvim_create_augroup("CmakeSaveKits", {}),
     callback = function()
+        kits.save_kits()
         if project.root_dir then
-            kits.save_kits()
             project.save_project()
         end
     end,
 })
-vim.api.nvim_create_user_command("CmakeSetRootDir", function(opts)
-    if not vim.tbl_isempty(opts.fargs) then
-        project.change_root_dir(opts.fargs[1])
-        project.load_project()
-        return
-    end
+
+vim.api.nvim_create_user_command("CmakeSetRootDir", function()
     local cwd = vim.uv.cwd()
     vim.ui.input({
         prompt = "Input your root dir",
@@ -31,7 +27,7 @@ vim.api.nvim_create_user_command("CmakeSetRootDir", function(opts)
         project.change_root_dir(cwd)
         project.load_project()
     end)
-end, { nargs = "*" })
+end, {})
 
 vim.api.nvim_create_user_command("CmakeSelectBuildType", function(opts)
     if not vim.tbl_isempty(opts.fargs) then
@@ -48,10 +44,10 @@ end, {
 })
 
 vim.api.nvim_create_user_command("CmakeSelectKit", function()
-    project.select_kit(function(prev, selected)
-        local fresh = prev ~= selected
+    local current_kit = project.selected_kit
+    project.select_kit(function(selected)
         commands.configure({
-            fresh = fresh,
+            fresh = current_kit ~= selected,
         })
     end)
 end, {})

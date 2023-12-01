@@ -44,7 +44,7 @@ M.configure = function(opts)
     table.insert(args, "-B" .. build_dir)
     table.insert(args, "-G" .. config.generator)
     table.insert(args, "-DCMAKE_BUILD_TYPE=" .. project.build_type)
-    if project.selected_kit ~= "Unspecified" then
+    if project.selected_kit.name ~= "Unspecified" then
         table.insert(args, "-DCMAKE_C_COMPILER=" .. project.selected_kit.compilers.C)
         if project.selected_kit.compilers.CXX then
             table.insert(args, "-DCMAKE_CXX_COMPILER=" .. project.selected_kit.compilers.CXX)
