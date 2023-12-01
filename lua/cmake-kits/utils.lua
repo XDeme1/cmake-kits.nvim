@@ -1,3 +1,5 @@
+local Path = require("plenary.path")
+
 local M = {}
 
 --- TODO: Add a config of preferred list of konsoles
@@ -8,6 +10,12 @@ M.get_external_terminal = function()
     elseif vim.fn.executable("gnome-terminal") then
         return "gnome-terminal", { "--" }
     end
+end
+
+--- @param path string
+--- @return boolean
+M.is_cmake_project = function(path)
+    return (Path:new(path) / "CMakeLists.txt"):exists()
 end
 
 --- @param path string

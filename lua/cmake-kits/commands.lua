@@ -16,7 +16,11 @@ M.interupt_job = function()
     end
 end
 
-M.configure = function(callback, fresh)
+--- @class cmake-kits.Configure
+--- @field fresh boolean?
+--- @field on_exit fun()
+--- @param opts cmake-kits.Configure
+M.configure = function(opts)
     if M.active_job then
         utils.notify(
             "Configuration error",
@@ -24,45 +28,41 @@ M.configure = function(callback, fresh)
         )
         return
     end
-    vim.schedule(function()
-        terminal.clear()
-    end)
+    opts = opts or {}
+
+    terminal.clear()
 
     local build_dir = project.interpolate_string(config.build_directory)
     cmake_file_api.create_query(build_dir)
 
-    local args = {
-        (fresh and "--fresh") or "",
-        "-S" .. project.root_dir,
-        "-B" .. build_dir,
-        "-G",
-        config.generator,
-        unpack(config.configure_args),
-        "-DCMAKE_BUILD_TYPE=" .. project.build_type,
-    }
+    local args = {}
+    if opts.fresh then
+        table.insert(args, "--fresh")
+    end
+
+    table.insert(args, "-S" .. project.root_dir)
+    table.insert(args, "-B" .. build_dir)
+    table.insert(args, "-G" .. config.generator)
+    table.insert(args, "-DCMAKE_BUILD_TYPE=" .. project.build_type)
     if project.selected_kit ~= "Unspecified" then
-        table.insert(args, "-DCMAKE_C_COMPILER=" .. project.selected_kit.compilers.C) -- C compiler is guaranteed to exist
+        table.insert(args, "-DCMAKE_C_COMPILER=" .. project.selected_kit.compilers.C)
         if project.selected_kit.compilers.CXX then
             table.insert(args, "-DCMAKE_CXX_COMPILER=" .. project.selected_kit.compilers.CXX)
         end
     end
-
+    vim.list_extend(args, config.configure_args)
     M.active_job = plenay_job:new({
         command = config.command,
         args = args,
         on_stdout = function(_, data)
-            if data then
-                vim.schedule(function()
-                    terminal.send_data("[configure] " .. data)
-                end)
-            end
+            vim.schedule(function()
+                terminal.send_data("[configure] " .. data)
+            end)
         end,
         on_stderr = function(_, data)
-            if data then
-                vim.schedule(function()
-                    terminal.send_data("[configure] " .. data)
-                end)
-            end
+            vim.schedule(function()
+                terminal.send_data("[configure] " .. data)
+            end)
         end,
         on_exit = function(_, code)
             M.active_job = nil
@@ -72,6 +72,9 @@ M.configure = function(callback, fresh)
             end
 
             utils.notify("Configuration", "Sucessful", vim.log.levels.INFO)
+
+            project.build_targets = cmake_file_api.get_build_targets(build_dir)
+            project.runnable_targets = cmake_file_api.get_runnable_targets(project.build_targets)
 
             if config.compile_commands_path then
                 local source = Path:new(build_dir) / "compile_commands.json"
@@ -85,10 +88,10 @@ M.configure = function(callback, fresh)
                 })
             end
 
-            project.build_targets = cmake_file_api.get_build_targets(build_dir)
-            project.runnable_targets = cmake_file_api.get_runnable_targets(project.build_targets)
-            if type(callback) == "function" then
-                callback()
+            if type(opts.on_exit) == "function" then
+                vim.schedule(function()
+                    opts.on_exit()
+                end)
             end
         end,
     })
