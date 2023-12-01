@@ -99,7 +99,7 @@ end
 --- @field on_exit fun()?
 
 --- @param quick boolean builds the already selected build target
---- @param opts cmake-kits.Build
+--- @param opts cmake-kits.Build?
 M.build = function(quick, opts)
     if M.active_job then
         utils.notify(
@@ -108,6 +108,7 @@ M.build = function(quick, opts)
         )
         return
     end
+    opts = opts or {}
     local build_dir = project.interpolate_string(config.build_directory)
     if vim.loop.fs_stat(build_dir).type ~= "directory" then --- configure when there is no build directory
         return M.configure({
@@ -123,63 +124,69 @@ M.build = function(quick, opts)
             target = project.selected_build,
         })
     else
-        project.select_build_target(function()
+        project.select_build_target(function(selected)
             M.create_build_job(build_dir, project.build_type, {
                 on_exit = opts.on_exit,
-                target = project.selected_build,
+                target = selected,
             })
         end)
     end
 end
 
-M.run = function(callback)
+--- @class cmake-kits.Run
+--- @field on_exit fun()?
+
+--- @param quick boolean?
+--- @param opts cmake-kits.Run?
+M.run = function(quick, opts)
     if M.active_job then
         utils.notify("Run error", "You must wait for another command to finish to use this command")
         return
     end
-
-    local build_dir = project.interpolate_string(config.build_directory)
-
-    if vim.loop.fs_stat(build_dir).type ~= "directory" then
-        return M.configure(function()
-            M.run(callback)
-        end)
-    end
-
-    project.select_runnable_target(function(selected)
-        M.create_build_job(build_dir, function()
-            M.create_run_job(callback)
-        end, selected)
-    end)
-end
-
-function M.quick_run(callback)
-    if M.active_job then
-        utils.notify("Run error", "You must wait for another command to finish to use this command")
-        return
-    end
-    if project.selected_runnable == nil then
-        utils.notify(
-            "Run error",
-            "You must select a runnable target before running CmakeQuickRun",
-            vim.log.levels.ERROR
-        )
-        return
-    end
-
+    opts = opts or {}
     local build_dir = project.interpolate_string(config.build_directory)
     if vim.loop.fs_stat(build_dir).type ~= "directory" then
-        return M.configure(function()
-            M.quick_run(callback)
-        end)
+        return M.configure({
+            on_exit = function()
+                M.run(quick, opts)
+            end,
+        })
     end
 
-    M.create_build_job(build_dir, function()
-        M.create_run_job(callback)
-    end, project.selected_runnable)
+    if quick then
+        if not project.selected_runnable then
+            utils.notify("Run error", "You must select a runnable target first")
+            return
+        end
+        M.create_build_job(build_dir, project.build_type, {
+            target = project.selected_runnable,
+            on_exit = function()
+                M.create_run_job({
+                    on_exit = opts.on_exit,
+                    target = project.selected_runnable,
+                })
+            end,
+        })
+    else
+        project.select_runnable_target(function(selected)
+            M.create_build_job(build_dir, project.build_type, {
+                target = selected,
+                on_exit = function()
+                    M.create_run_job({
+                        on_exit = opts.on_exit,
+                        target = selected,
+                    })
+                end,
+            })
+        end)
+    end
 end
 
-function M.test(callback)
+--- @class cmake-kits.Test
+--- @field on_exit fun()?
+
+--- @param opts cmake-kits.Test?
+function M.test(opts)
     if M.active_job then
         utils.notify(
             "Test error",
@@ -187,17 +194,26 @@ function M.test(callback)
         )
         return
     end
-
+    opts = opts or {}
     local build_dir = project.interpolate_string(config.build_directory)
     if vim.loop.fs_stat(build_dir).type ~= "directory" then
-        return M.configure(function()
-            M.test(callback)
-        end)
+        return M.configure({
+            on_exit = function()
+                M.test({
+                    on_exit = opts.on_exit,
+                })
+            end,
+        })
     end
 
-    M.create_build_job(build_dir, function()
-        M.create_test_job(build_dir, callback)
-    end)
+    M.create_build_job(build_dir, project.build_type, {
+        on_exit = function()
+            M.create_test_job(build_dir, project.build_type, {
+                on_exit = opts.on_exit,
+            })
+        end,
+        target = project.selected_runnable,
+    })
 end
 
 --- @class cmake-kits.Job
@@ -252,7 +268,8 @@ function M.create_build_job(build_dir, build_type, opts)
     M.active_job:start()
 end
 
-function M.create_run_job(callback)
+--- @param opts cmake-kits.Job
+function M.create_run_job(opts)
     local ext_terminal, args = utils.get_external_terminal()
     M.active_job = plenay_job:new({
         command = ext_terminal,
@@ -260,9 +277,7 @@ function M.create_run_job(callback)
             unpack(args),
             "bash",
             "-c",
-            project.selected_runnable.full_path
-                .. ";"
-                .. 'read -n 1 -r -p "\nPress any key to continue..."',
+            opts.target.full_path .. ";" .. 'read -n 1 -r -p "\nPress any key to continue..."',
         },
         on_start = function()
             --- The on_exit is only called when the console exits.
@@ -275,22 +290,27 @@ function M.create_run_job(callback)
                 return
             end
 
-            if type(callback) == "function" then
-                callback()
+            if type(opts.on_exit) == "function" then
+                vim.schedule(function()
+                    opts.on_exit()
+                end)
             end
         end,
     })
     M.active_job:start()
 end
 
-function M.create_test_job(build_dir, callback)
+--- @param build_dir string
+--- @param build_type cmake-kits.BuildVariant
+--- @param opts cmake-kits.Job
+function M.create_test_job(build_dir, build_type, opts)
     M.active_job = plenay_job:new({
         command = config.command,
         args = {
             "--build",
             build_dir,
             "--config",
-            project.build_type,
+            build_type,
             "--target",
             "test",
         },
@@ -312,8 +332,10 @@ function M.create_test_job(build_dir, callback)
             end
 
             utils.notify("Test", "All tests passed", vim.log.levels.INFO)
-            if type(callback) == "function" then
-                callback()
+            if type(opts.on_exit) == "function" then
+                vim.schedule(function()
+                    opts.on_exit()
+                end)
             end
         end,
     })

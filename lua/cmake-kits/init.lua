@@ -83,7 +83,7 @@ function M._setup_autocmds(opts)
                     opts.on_root_change(project.root_dir)
                 end
             end
-            if opts.configure_on_open then
+            if opts.configure_on_open and project.root_dir then
                 commands.configure()
             end
         end,

@@ -50,7 +50,9 @@ end, {
 vim.api.nvim_create_user_command("CmakeSelectKit", function()
     project.select_kit(function(prev, selected)
         local fresh = prev ~= selected
-        commands.configure(nil, fresh)
+        commands.configure({
+            fresh = fresh,
+        })
     end)
 end, {})
 
@@ -67,11 +69,11 @@ vim.api.nvim_create_user_command("CmakeQuickBuild", function()
 end, {})
 
 vim.api.nvim_create_user_command("CmakeRun", function()
-    commands.run()
+    commands.run(false, {})
 end, {})
 
 vim.api.nvim_create_user_command("CmakeQuickRun", function()
-    commands.quick_run()
+    commands.run(true, {})
 end, {})
 
 vim.api.nvim_create_user_command("CmakeTest", function()
