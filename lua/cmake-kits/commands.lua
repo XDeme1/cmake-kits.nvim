@@ -78,13 +78,10 @@ M.configure = function(opts)
 
             if config.compile_commands_path then
                 local source = Path:new(build_dir) / "compile_commands.json"
-                local destination =
-                    Path:new(project.interpolate_string(config.compile_commands_path))
-                if destination:is_dir() then
-                    destination = destination / "compile_commands.json"
-                end
                 source:copy({
-                    destination = destination,
+                    destination = Path:new(
+                        project.interpolate_string(config.compile_commands_path)
+                    ),
                 })
             end
 
