@@ -52,6 +52,7 @@ M.configure = function(opts)
         end
     end
     vim.list_extend(args, config.configure_args)
+    vim.list_extend(args, project.config.configure_args)
     M.active_job = plenay_job:new({
         command = config.command,
         args = args,
@@ -237,6 +238,7 @@ function M.create_build_job(build_dir, build_type, opts)
     }
 
     vim.list_extend(args, config.build_args)
+    vim.list_extend(args, project.config.build_args)
 
     M.active_job = plenay_job:new({
         command = config.command,
