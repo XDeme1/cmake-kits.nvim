@@ -19,16 +19,6 @@ M.is_cmake_project = function(path)
 end
 
 --- @param path string
-M.get_cmake_root = function(path)
-    local found = vim.fs.find("CMakeLists.txt", {
-        limit = math.huge,
-        upward = true,
-        path = path,
-    })
-    return vim.fs.dirname(found[#found])
-end
-
---- @param path string
 --- @return table
 M.load_data = function(path)
     local fd = io.open(path, "r")

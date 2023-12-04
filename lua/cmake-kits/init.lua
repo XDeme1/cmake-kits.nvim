@@ -1,7 +1,6 @@
 local project = require("cmake-kits.project")
 local config = require("cmake-kits.config")
 local commands = require("cmake-kits.commands")
-local utils = require("cmake-kits.utils")
 local terminal = require("cmake-kits.terminal")
 
 --- @class cmake-kits.WindowStyle

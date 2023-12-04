@@ -1,7 +1,7 @@
 local config = require("cmake-kits.config")
-local kits = require("cmake-kits.kits")
 local Path = require("plenary.path")
 local utils = require("cmake-kits.utils")
+local watcher = require("cmake-kits.file_watcher")
 
 --- @alias cmake-kits.BuildVariant "Debug" | "Release" | "MinSizeRel" | "RelWithDebInfo"
 --- @alias cmake-kits.TargetType "EXECUTABLE" | "STATIC_LIBRARY"
@@ -18,14 +18,19 @@ local utils = require("cmake-kits.utils")
 --- @class cmake-kits.ProjectState Table holding the state of the cmake project
 --- @field root_dir string? Path to the root project
 --- @field build_type cmake-kits.BuildVariant
---- @field selected_kit cmake-kits.Kit
+--- @field selected_kit cmake-kits.Kit|cmake-kits.UnspecifiedKit
 ---
 --- @field build_targets cmake-kits.Target[]
 --- @field selected_build cmake-kits.Target
 ---
 --- @field runnable_targets cmake-kits.Target[]
 --- @field selected_runnable cmake-kits.Target?
-local M = {}
+local M = {
+    --- @type uv.uv_fs_event_t|nil
+    file_watcher = nil,
+    --- @type cmake-kits.CmakeConfig|{}
+    config = {},
+}
 
 --- Used to substitute ${workspaceFolder} and ${buildType} with the correct string
 --- @param path string
@@ -36,7 +41,12 @@ M.interpolate_string = function(path)
 end
 
 M.clear_state = function()
+    if M.file_watcher then
+        M.file_watcher:close()
+        M.file_watcher = nil
+    end
     M.root_dir = nil
+    M.config = {}
     M.build_type = "Debug"
     M.selected_kit = {
         name = "Unspecified",
@@ -64,14 +74,46 @@ M.has_ctest = function()
     return false
 end
 
+M.load_local_config = function(path)
+    local local_config = utils.load_data(path)
+    M.config.configure_args = local_config["cmake.configureArgs"]
+    M.config.build_args = local_config["cmake.buildArgs"]
+end
+
 M.set_root_dir = function(dir)
     if not utils.is_cmake_project(dir) then
         M.save_project()
         M.clear_state()
         return
     end
+    if M.file_watcher then
+        M.file_watcher:close()
+        M.file_watcher = nil
+    end
     M.root_dir = dir
     M.load_project()
+    local local_config_dir = Path:new(dir) / ".vscode"
+    local path = local_config_dir / "settings.json"
+    local path_str = tostring(path)
+
+    if path:exists() then
+        M.load_local_config(path_str)
+    end
+
+    local defer = nil
+    M.file_watcher = watcher.watch(tostring(local_config_dir), {
+        callback = function(filename, _)
+            if filename ~= "settings.json" then
+                return
+            end
+            if not defer then
+                defer = vim.defer_fn(function()
+                    defer = nil
+                    M.load_local_config(path_str)
+                end, 200)
+            end
+        end,
+    })
 end
 
 M.load_project = function()
