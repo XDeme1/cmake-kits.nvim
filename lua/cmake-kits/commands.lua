@@ -5,6 +5,7 @@ local utils = require("cmake-kits.utils")
 local cmake_file_api = require("cmake-kits.cmake_file_api")
 local Path = require("plenary.path")
 local terminal = require("cmake-kits.terminal")
+local picker = require("cmake-kits.pickers")
 
 local M = {}
 
@@ -124,7 +125,7 @@ M.build = function(quick, opts)
             target = project.selected_build,
         })
     else
-        project.select_build_target(function(selected)
+        picker.select_build_target(function(selected)
             M.create_build_job(build_dir, project.build_type, {
                 on_exit = opts.on_exit,
                 target = selected,
@@ -168,7 +169,7 @@ M.run = function(quick, opts)
             end,
         })
     else
-        project.select_runnable_target(function(selected)
+        picker.select_runnable_target(function(selected)
             M.create_build_job(build_dir, project.build_type, {
                 target = selected,
                 on_exit = function()

@@ -1,6 +1,7 @@
 local project = require("cmake-kits.project")
 local kits = require("cmake-kits.kits")
 local commands = require("cmake-kits.commands")
+local picker = require("cmake-kits.pickers")
 
 kits.load_kits()
 
@@ -33,7 +34,9 @@ vim.api.nvim_create_user_command("CmakeSelectBuildType", function(opts)
         project.build_type = opts.fargs[1]
         return
     end
-    project.select_build_type(commands.configure)
+    picker.select_build_type(function()
+        commands.configure({})
+    end)
 end, {
     nargs = "*",
     complete = function()
@@ -44,7 +47,7 @@ end, {
 
 vim.api.nvim_create_user_command("CmakeSelectKit", function()
     local current_kit = project.selected_kit
-    project.select_kit(function(selected)
+    picker.select_kit(function(selected)
         commands.configure({
             fresh = current_kit ~= selected,
         })
