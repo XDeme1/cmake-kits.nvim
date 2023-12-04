@@ -18,8 +18,6 @@ local terminal = require("cmake-kits.terminal")
 --- @field foreground string?
 
 --- @class cmake-kits.SetupConfig : cmake-kits.CmakeConfig
---- @field auto_root boolean Automatic detection and setting of root_dir.
---- @field on_root_change (fun(dir: string): nil)? Event called when root_dir changes.
 --- @field configure_on_open boolean Automatic configuration of project. auto_root is required for this to work properly.
 --- @field configure_on_save boolean Automatic configuration of project on CMakeLists.txt file save
 --- @field terminal cmake-kits.WindowSettings?
