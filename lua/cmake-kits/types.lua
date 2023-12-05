@@ -5,6 +5,8 @@
 --- @class cmake-kits.CmakeConfig
 --- @field command string Path of the cmake executable.
 --- @field generator cmake-kits.Generator Generator to use to build the project.
+--- @field configure_on_open boolean Automatic configuration of project. auto_root is required for this to work properly.
+--- @field configure_on_save boolean Automatic configuration of project on CMakeLists.txt file save
 --- @field build_directory string Path where cmake will build the project.
 --- @field compile_commands_path string? Path where compile_commands.json will be copied to.
 --- @field configure_args string[] Arguments that will be passed when configuring the project.
@@ -58,6 +60,24 @@
 --- @field foreground string?
 
 --- @class cmake-kits.SetupConfig : cmake-kits.CmakeConfig
---- @field configure_on_open boolean Automatic configuration of project. auto_root is required for this to work properly.
---- @field configure_on_save boolean Automatic configuration of project on CMakeLists.txt file save
 --- @field terminal cmake-kits.WindowSettings?
+
+--- @class cmake-kits.Compilers
+--- @field C string?
+--- @field CXX string?
+
+---@class cmake-kits.Target
+---@field name string
+---@field full_path string?
+---@field type cmake-kits.TargetType?
+
+--- @class cmake-kits.ProjectState Table holding the state of the cmake project
+--- @field root_dir string? Path to the root project
+--- @field build_type cmake-kits.BuildVariant
+--- @field selected_kit cmake-kits.Kit|cmake-kits.UnspecifiedKit
+---
+--- @field build_targets cmake-kits.Target[]
+--- @field selected_build cmake-kits.Target
+---
+--- @field runnable_targets cmake-kits.Target[]
+--- @field selected_runnable cmake-kits.Target?
