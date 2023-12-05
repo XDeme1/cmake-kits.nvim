@@ -112,6 +112,9 @@ M.load_project = function()
         return
     end
     M.state = json.projects[M.root_dir]
+    if config.configure_on_open then
+        vim.api.nvim_command("CmakeConfigure")
+    end
 end
 
 M.save_project = function()
