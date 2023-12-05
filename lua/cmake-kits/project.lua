@@ -75,7 +75,6 @@ M.set_root_dir = function(dir)
         M.clear_state()
     end
     if dir == nil then
-        M.root_dir = nil
         return
     end
 
@@ -132,6 +131,30 @@ M.save_project = function()
         save_data,
         true
     )
+end
+
+M.get_build_type = function()
+    return M.state.build_type
+end
+
+M.get_build_targets = function()
+    return M.state.build_targets
+end
+
+M.get_runnable_targets = function()
+    return M.state.runnable_targets
+end
+
+M.get_selected_build = function()
+    return M.state.selected_build
+end
+
+M.get_selected_runnable = function()
+    return M.state.selected_runnable
+end
+
+M.get_selected_kit = function()
+    return M.state.selected_kit
 end
 
 M.clear_state()
