@@ -8,8 +8,6 @@ local M = {}
 
 --- @type cmake-kits.SetupConfig
 local default = {
-    configure_on_open = true,
-    configure_on_save = true,
     terminal = {
         toggle = "<C-c>",
         pos = "bottom",
@@ -34,6 +32,14 @@ function M._setup_autocmds(opts)
             kits.save_kits()
             if project.root_dir then
                 project.save_project()
+            end
+        end,
+    })
+
+    vim.api.nvim_create_autocmd("DirChanged", {
+        callback = function(ev)
+            if ev.file ~= project.root_dir then
+                project.set_root_dir(nil)
             end
         end,
     })

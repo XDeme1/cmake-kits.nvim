@@ -3,25 +3,7 @@ local Path = require("plenary.path")
 local utils = require("cmake-kits.utils")
 local watcher = require("cmake-kits.file_watcher")
 
---- @class cmake-kits.Compilers
---- @field C string?
---- @field CXX string?
-
----@class cmake-kits.Target
----@field name string
----@field full_path string?
----@field type cmake-kits.TargetType?
-
---- @class cmake-kits.ProjectState Table holding the state of the cmake project
---- @field root_dir string? Path to the root project
---- @field build_type cmake-kits.BuildVariant
---- @field selected_kit cmake-kits.Kit|cmake-kits.UnspecifiedKit
----
---- @field build_targets cmake-kits.Target[]
---- @field selected_build cmake-kits.Target
----
---- @field runnable_targets cmake-kits.Target[]
---- @field selected_runnable cmake-kits.Target?
+--- @class cmake-kits.ProjectState
 local M = {
     --- @type uv.uv_fs_event_t|nil
     file_watcher = nil,
@@ -89,6 +71,10 @@ M.set_root_dir = function(dir)
     if M.root_dir then
         M.save_project()
         M.clear_state()
+    end
+    if dir == nil then
+        M.root_dir = nil
+        return
     end
 
     M.root_dir = dir
