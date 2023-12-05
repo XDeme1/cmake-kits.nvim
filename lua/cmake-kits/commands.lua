@@ -41,15 +41,15 @@ M.configure = function(opts)
     table.insert(args, "-S" .. (project.config.source_directory or project.root_dir))
     table.insert(args, "-B" .. build_dir)
     table.insert(args, "-G" .. config.generator)
-    table.insert(args, "-DCMAKE_BUILD_TYPE=" .. project.build_type)
-    if project.selected_kit.name ~= "Unspecified" then
-        table.insert(args, "-DCMAKE_C_COMPILER=" .. project.selected_kit.compilers.C)
-        if project.selected_kit.compilers.CXX then
-            table.insert(args, "-DCMAKE_CXX_COMPILER=" .. project.selected_kit.compilers.CXX)
+    table.insert(args, "-DCMAKE_BUILD_TYPE=" .. project.state.build_type)
+    if project.state.selected_kit.name ~= "Unspecified" then
+        table.insert(args, "-DCMAKE_C_COMPILER=" .. project.state.selected_kit.compilers.C)
+        if project.state.selected_kit.compilers.CXX then
+            table.insert(args, "-DCMAKE_CXX_COMPILER=" .. project.state.selected_kit.compilers.CXX)
         end
     end
-    vim.list_extend(args, config.configure_args)
-    vim.list_extend(args, project.config.configure_args)
+    vim.list_extend(args, config.configure_args or {})
+    vim.list_extend(args, project.config.configure_args or {})
     M.active_job = plenay_job:new({
         command = config.command,
         args = args,
@@ -72,8 +72,9 @@ M.configure = function(opts)
 
             utils.notify("Configuration", "Sucessful", vim.log.levels.INFO)
 
-            project.build_targets = cmake_file_api.get_build_targets(build_dir)
-            project.runnable_targets = cmake_file_api.get_runnable_targets(project.build_targets)
+            project.state.build_targets = cmake_file_api.get_build_targets(build_dir)
+            project.state.runnable_targets =
+                cmake_file_api.get_runnable_targets(project.state.build_targets)
 
             if config.compile_commands_path then
                 local source = Path:new(build_dir) / "compile_commands.json"
@@ -115,13 +116,13 @@ M.build = function(quick, opts)
     end
 
     if quick then
-        M.create_build_job(build_dir, project.build_type, {
+        M.create_build_job(build_dir, project.state.build_type, {
             on_exit = opts.on_exit,
-            target = project.selected_build,
+            target = project.state.selected_build,
         })
     else
         picker.select_build_target(function(selected)
-            M.create_build_job(build_dir, project.build_type, {
+            M.create_build_job(build_dir, project.state.build_type, {
                 on_exit = opts.on_exit,
                 target = selected,
             })
@@ -147,22 +148,22 @@ M.run = function(quick, opts)
     end
 
     if quick then
-        if not project.selected_runnable then
+        if not project.state.selected_runnable then
             utils.notify("Run error", "You must select a runnable target first")
             return
         end
-        M.create_build_job(build_dir, project.build_type, {
-            target = project.selected_runnable,
+        M.create_build_job(build_dir, project.state.build_type, {
+            target = project.state.selected_runnable,
             on_exit = function()
                 M.create_run_job({
                     on_exit = opts.on_exit,
-                    target = project.selected_runnable,
+                    target = project.state.selected_runnable,
                 })
             end,
         })
     else
         picker.select_runnable_target(function(selected)
-            M.create_build_job(build_dir, project.build_type, {
+            M.create_build_job(build_dir, project.state.build_type, {
                 target = selected,
                 on_exit = function()
                     M.create_run_job({
@@ -196,13 +197,13 @@ function M.test(opts)
         })
     end
 
-    M.create_build_job(build_dir, project.build_type, {
+    M.create_build_job(build_dir, project.state.build_type, {
         on_exit = function()
-            M.create_test_job(build_dir, project.build_type, {
+            M.create_test_job(build_dir, project.state.build_type, {
                 on_exit = opts.on_exit,
             })
         end,
-        target = project.selected_runnable,
+        target = project.state.selected_runnable,
     })
 end
 

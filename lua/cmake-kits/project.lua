@@ -15,7 +15,7 @@ local M = {
 --- @param path string
 M.interpolate_string = function(path)
     path = path:gsub("${workspaceFolder}", M.root_dir)
-    path = path:gsub("${buildType}", M.build_type)
+    path = path:gsub("${buildType}", M.state.build_type)
     return path
 end
 
@@ -26,18 +26,20 @@ M.clear_state = function()
     end
     M.root_dir = nil
     M.config = {}
-    M.build_type = "Debug"
-    M.selected_kit = {
-        name = "Unspecified",
-    }
+    M.state = {
+        build_type = "Debug",
+        selected_kit = {
+            name = "Unspecified",
+        },
 
-    M.build_targets = {}
-    M.selected_build = {
-        name = "all",
-    }
+        build_targets = {},
+        selected_build = {
+            name = "all",
+        },
 
-    M.runnable_targets = {}
-    M.selected_runnable = nil
+        runnable_targets = {},
+        selected_runnable = nil,
+    }
 end
 
 --- @return boolean
@@ -104,53 +106,25 @@ M.set_root_dir = function(dir)
 end
 
 M.load_project = function()
-    local save_path = vim.fs.joinpath(vim.fn.stdpath("data"), "cmake-kits-projects.json")
-
-    local file = io.open(save_path, "r")
-    local json = nil
-    if file then
-        json = vim.json.decode(file:read("*a"))
-        if json.projects[M.root_dir] then
-            for key, value in pairs(json.projects[M.root_dir]) do
-                M[key] = value
-            end
-        end
-        file:close()
+    local json =
+        utils.load_data(vim.fs.joinpath(vim.fn.stdpath("data"), "cmake-kits-projects.json"))
+    if not json.projects or vim.tbl_isempty(json.projects[M.root_dir]) then
+        return
     end
+    M.state = json.projects[M.root_dir]
 end
 
 M.save_project = function()
-    local save_path = vim.fs.joinpath(vim.fn.stdpath("data"), "cmake-kits-projects.json")
     local save_data = {
         projects = {
-            [M.root_dir] = {
-                build_type = M.build_type,
-                build_targets = M.build_targets,
-                runnable_targets = M.runnable_targets,
-                selected_build = M.selected_build,
-                selected_runnable = M.selected_runnable,
-                selected_kit = M.selected_kit,
-            },
+            [M.root_dir] = M.state,
         },
     }
-
-    local old_file = io.open(save_path, "r")
-    local json = nil
-    if old_file then
-        json = vim.json.decode(old_file:read("*a"))
-        json.projects[M.root_dir] = save_data.projects[M.root_dir]
-        old_file:close()
-    end
-
-    local file = io.open(save_path, "w+")
-    if file then
-        if json then
-            file:write(vim.json.encode(json))
-        else
-            file:write(vim.json.encode(save_data))
-        end
-        file:close()
-    end
+    utils.save_data(
+        vim.fs.joinpath(vim.fn.stdpath("data"), "cmake-kits-projects.json"),
+        save_data,
+        true
+    )
 end
 
 M.clear_state()

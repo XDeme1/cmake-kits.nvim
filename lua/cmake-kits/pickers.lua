@@ -24,12 +24,12 @@ M.select_kit = function(on_select)
             kits.scan_for_kits()
             return
         elseif choice.id == 0 then
-            project.selected_kit = {
+            project.state.selected_kit = {
                 name = "Unspecified",
             }
             return
         end
-        project.selected_kit = kits.kits[choice.id]
+        project.state.selected_kit = kits.kits[choice.id]
         if type(on_select) == "function" then
             on_select(choice)
         end
@@ -44,7 +44,7 @@ M.select_build_type = function(on_select)
         if choice == nil then
             return
         end
-        project.build_type = choice
+        project.state.build_type = choice
         if type(on_select) == "function" then
             on_select(choice)
         end
@@ -53,7 +53,7 @@ end
 
 --- @param on_select fun(selected: cmake-kits.Target)?
 M.select_build_target = function(on_select)
-    vim.ui.select(project.build_targets, {
+    vim.ui.select(project.state.build_targets, {
         prompt = "Select build target",
         format_item = function(target)
             return target.name
@@ -62,7 +62,7 @@ M.select_build_target = function(on_select)
         if choice == nil then
             return
         end
-        project.selected_build = choice
+        project.state.selected_build = choice
         if type(on_select) == "function" then
             on_select(choice)
         end
@@ -71,7 +71,7 @@ end
 
 --- @param on_select fun(selected: cmake-kits.Target)?
 M.select_runnable_target = function(on_select)
-    vim.ui.select(project.runnable_targets, {
+    vim.ui.select(project.state.runnable_targets, {
         prompt = "Select a target to run",
         format_item = function(target)
             return target.name
@@ -80,7 +80,7 @@ M.select_runnable_target = function(on_select)
         if choice == nil then
             return
         end
-        project.selected_runnable = choice
+        project.state.selected_runnable = choice
         if type(on_select) == "function" then
             on_select(choice)
         end
