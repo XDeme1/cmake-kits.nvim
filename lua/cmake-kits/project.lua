@@ -75,21 +75,22 @@ M.load_local_config = function(path)
     local local_config = utils.load_data(path)
     if local_config["cmake.sourceDirectory"] then
         M.config.source_directory = M.interpolate_string(local_config["cmake.sourceDirectory"])
+    else
+        M.config.source_directory = nil
     end
     M.config.configure_args = local_config["cmake.configureArgs"]
     M.config.build_args = local_config["cmake.buildArgs"]
 end
 
 M.set_root_dir = function(dir)
-    if not utils.is_cmake_project(dir) then
-        M.save_project()
-        M.clear_state()
+    if dir == M.root_dir then
         return
     end
-    if M.file_watcher then
-        M.file_watcher:close()
-        M.file_watcher = nil
+    if M.root_dir then
+        M.save_project()
+        M.clear_state()
     end
+
     M.root_dir = dir
     M.load_project()
     local local_config_dir = Path:new(dir) / ".vscode"

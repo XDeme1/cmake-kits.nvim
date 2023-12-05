@@ -23,6 +23,10 @@ require("cmake-kits").setup({
 })
 ```
 
+* `require('cmake-kits.commands')` provides abstractions over cmake commands
+* `require('cmake-kits.project')` provides `set_root_dir(dir)`
+* `require('cmake-kits.utils')` provides some utilities like `is_cmake_project(path, depth)`
+
 ## Features
 ### Variable Substitution
 * `${workspaceFolder}` Expands to the project root directory

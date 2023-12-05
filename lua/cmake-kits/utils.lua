@@ -1,4 +1,4 @@
-local Path = require("plenary.path")
+local scan = require("plenary.scandir")
 
 local M = {}
 
@@ -12,10 +12,15 @@ M.get_external_terminal = function()
     end
 end
 
+--- Checks if a CMakeLists.txt is present
 --- @param path string
+--- @param depth integer?
 --- @return boolean
-M.is_cmake_project = function(path)
-    return (Path:new(path) / "CMakeLists.txt"):exists()
+M.is_cmake_project = function(path, depth)
+    depth = depth or 2
+    local found =
+        scan.scan_dir(path, { hidden = false, depth = depth, search_pattern = "CMakeLists.txt" })
+    return not vim.tbl_isempty(found)
 end
 
 --- @param path string
