@@ -3,6 +3,9 @@ local M = {
     command = "cmake",
     generator = "Ninja",
 
+    configure_on_open = true,
+    configure_on_save = true,
+
     build_directory = "${workspaceFolder}/build/${buildType}",
     compile_commands_path = "${workspaceFolder}/compile_commands.json",
 
@@ -13,8 +16,11 @@ local M = {
 return M
 
 --- Defaults
---- .command = "cmake"
+--- M.command = "cmake"
 --- M.generator = "Ninja"
+
+--- M.configure_on_open = true
+--- M.configure_on_save = true
 
 --- M.build_directory = "${workspaceFolder}/build/${buildType}"
 
