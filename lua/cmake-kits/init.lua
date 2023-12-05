@@ -4,25 +4,6 @@ local kits = require("cmake-kits.kits")
 local commands = require("cmake-kits.commands")
 local terminal = require("cmake-kits.terminal")
 
---- @class cmake-kits.WindowStyle
---- @field row fun(): integer
---- @field col fun(): integer
---- @field width fun(): integer
---- @field height fun(): integer
---- @field border string[]
-
---- @class cmake-kits.WindowSettings
---- @field toggle string?
---- @field pos "bottom"|"center"
---- @field styles cmake-kits.WindowStyle
---- @field background string?
---- @field foreground string?
-
---- @class cmake-kits.SetupConfig : cmake-kits.CmakeConfig
---- @field configure_on_open boolean Automatic configuration of project. auto_root is required for this to work properly.
---- @field configure_on_save boolean Automatic configuration of project on CMakeLists.txt file save
---- @field terminal cmake-kits.WindowSettings?
-
 local M = {}
 
 --- @type cmake-kits.SetupConfig

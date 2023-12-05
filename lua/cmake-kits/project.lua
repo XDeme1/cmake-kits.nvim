@@ -3,9 +3,6 @@ local Path = require("plenary.path")
 local utils = require("cmake-kits.utils")
 local watcher = require("cmake-kits.file_watcher")
 
---- @alias cmake-kits.BuildVariant "Debug" | "Release" | "MinSizeRel" | "RelWithDebInfo"
---- @alias cmake-kits.TargetType "EXECUTABLE" | "STATIC_LIBRARY"
-
 --- @class cmake-kits.Compilers
 --- @field C string?
 --- @field CXX string?
@@ -28,7 +25,7 @@ local watcher = require("cmake-kits.file_watcher")
 local M = {
     --- @type uv.uv_fs_event_t|nil
     file_watcher = nil,
-    --- @type cmake-kits.CmakeConfig|{}
+    --- @type cmake-kits.CmakeConfigLocal|{}
     config = {},
 }
 
@@ -76,6 +73,7 @@ end
 
 M.load_local_config = function(path)
     local local_config = utils.load_data(path)
+    M.config.source_directory = local_config["cmake.sourceDirectory"]
     M.config.configure_args = local_config["cmake.configureArgs"]
     M.config.build_args = local_config["cmake.buildArgs"]
 end

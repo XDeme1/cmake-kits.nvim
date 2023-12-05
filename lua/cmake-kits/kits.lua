@@ -1,18 +1,6 @@
 local job = require("plenary.job")
 local utils = require("cmake-kits.utils")
 
---- @class cmake-kits.Kit
---- @field name string
---- @field compilers cmake-kits.Compilers
---- @field isTrusted boolean
-
---- @class cmake-kits.UnspecifiedKit
---- @field name "Unspecified"
---- @field compilers nil
---- @field isTrusted nil
-
---- @class cmake-kits.KitsState
---- @field kits cmake-kits.Kit[]
 local M = {}
 
 M.kits = {}

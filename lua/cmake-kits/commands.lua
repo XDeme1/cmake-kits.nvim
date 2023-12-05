@@ -17,9 +17,6 @@ M.interupt_job = function()
     end
 end
 
---- @class cmake-kits.Configure
---- @field fresh boolean?
---- @field on_exit fun()?
 --- @param opts cmake-kits.Configure?
 M.configure = function(opts)
     if M.active_job then
@@ -41,7 +38,7 @@ M.configure = function(opts)
         table.insert(args, "--fresh")
     end
 
-    table.insert(args, "-S" .. project.root_dir)
+    table.insert(args, "-S" .. project.config.source_directory or project.root_dir)
     table.insert(args, "-B" .. build_dir)
     table.insert(args, "-G" .. config.generator)
     table.insert(args, "-DCMAKE_BUILD_TYPE=" .. project.build_type)
@@ -97,9 +94,6 @@ M.configure = function(opts)
     M.active_job:start()
 end
 
---- @class cmake-kits.Build
---- @field on_exit fun()?
-
 --- @param quick boolean builds the already selected build target
 --- @param opts cmake-kits.Build?
 M.build = function(quick, opts)
@@ -134,9 +128,6 @@ M.build = function(quick, opts)
         end)
     end
 end
-
---- @class cmake-kits.Run
---- @field on_exit fun()?
 
 --- @param quick boolean?
 --- @param opts cmake-kits.Run?
@@ -184,9 +175,6 @@ M.run = function(quick, opts)
     end
 end
 
---- @class cmake-kits.Test
---- @field on_exit fun()?
-
 --- @param opts cmake-kits.Test?
 function M.test(opts)
     if M.active_job then
@@ -217,10 +205,6 @@ function M.test(opts)
         target = project.selected_runnable,
     })
 end
-
---- @class cmake-kits.Job
---- @field on_exit fun()?
---- @field target cmake-kits.Target?
 
 --- @param build_dir string
 --- @param build_type cmake-kits.BuildVariant
