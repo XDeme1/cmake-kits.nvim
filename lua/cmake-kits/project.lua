@@ -108,7 +108,11 @@ end
 M.load_project = function()
     local json =
         utils.load_data(vim.fs.joinpath(vim.fn.stdpath("data"), "cmake-kits-projects.json"))
-    if not json.projects or vim.tbl_isempty(json.projects[M.root_dir]) then
+    if
+        not json.projects
+        or not json.projects[M.root_dir]
+        or vim.tbl_isempty(json.projects[M.root_dir])
+    then
         return
     end
     M.state = json.projects[M.root_dir]
