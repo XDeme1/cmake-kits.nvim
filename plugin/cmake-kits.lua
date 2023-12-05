@@ -1,19 +1,6 @@
 local project = require("cmake-kits.project")
-local kits = require("cmake-kits.kits")
 local commands = require("cmake-kits.commands")
 local picker = require("cmake-kits.pickers")
-
-kits.load_kits()
-
-vim.api.nvim_create_autocmd("VimLeavePre", {
-    group = vim.api.nvim_create_augroup("CmakeSaveKits", {}),
-    callback = function()
-        kits.save_kits()
-        if project.root_dir then
-            project.save_project()
-        end
-    end,
-})
 
 vim.api.nvim_create_user_command("CmakeSetRootDir", function()
     local cwd = vim.uv.cwd()
