@@ -1,4 +1,3 @@
-local config = require("cmake-kits.config")
 local Path = require("plenary.path")
 local utils = require("cmake-kits.utils")
 local watcher = require("cmake-kits.file_watcher")

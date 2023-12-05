@@ -38,7 +38,7 @@ M.configure = function(opts)
         table.insert(args, "--fresh")
     end
 
-    table.insert(args, "-S" .. project.config.source_directory or project.root_dir)
+    table.insert(args, "-S" .. (project.config.source_directory or project.root_dir))
     table.insert(args, "-B" .. build_dir)
     table.insert(args, "-G" .. config.generator)
     table.insert(args, "-DCMAKE_BUILD_TYPE=" .. project.build_type)
