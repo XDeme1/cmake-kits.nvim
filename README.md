@@ -34,9 +34,9 @@ cmake-kits uses the same path and syntax as vscode-cmake-tools, `.vscode/setting
 Supported:
 * `cmake.configureArgs` Extra arguments to use when configuring
 * `cmake.buildArgs` Extra arguments to use when building
-
+* `cmake.sourceDirectory` Directory where cmake will be sourced, root directory will not change
 
 ## TODO
 - Support more local project configurations settings
-    - [ ] `cmake.sourceDirectory`
+    - [x] `cmake.sourceDirectory`
 - Add support as a telescope extension

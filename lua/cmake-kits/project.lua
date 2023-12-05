@@ -73,7 +73,7 @@ end
 
 M.load_local_config = function(path)
     local local_config = utils.load_data(path)
-    M.config.source_directory = local_config["cmake.sourceDirectory"]
+    M.config.source_directory = M.interpolate_string(local_config["cmake.sourceDirectory"])
     M.config.configure_args = local_config["cmake.configureArgs"]
     M.config.build_args = local_config["cmake.buildArgs"]
 end
