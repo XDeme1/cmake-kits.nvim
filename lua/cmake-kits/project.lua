@@ -39,6 +39,19 @@ M.clear_state = function()
     M.selected_runnable = nil
 end
 
+--- @return boolean
+M.has_ctest = function()
+    if not M.root_dir then
+        return false
+    end
+    local ctest_path = Path:new(M.interpolate_string(config.build_directory))
+        / "CTestTestfile.cmake"
+    if ctest_path:exists() then
+        return true
+    end
+    return false
+end
+
 M.load_local_config = function(path)
     local local_config = utils.load_data(path)
     if local_config["cmake.sourceDirectory"] then

@@ -1,6 +1,4 @@
 local scan = require("plenary.scandir")
-local Path = require("plenary.path")
-local config = require("cmake-kits.config")
 
 local M = {}
 
@@ -23,19 +21,6 @@ M.is_cmake_project = function(path, depth)
     local found =
         scan.scan_dir(path, { hidden = false, depth = depth, search_pattern = "CMakeLists.txt" })
     return not vim.tbl_isempty(found)
-end
-
---- @return boolean
-M.has_ctest = function()
-    if not M.root_dir then
-        return false
-    end
-    local ctest_path = Path:new(M.interpolate_string(config.build_directory))
-        / "CTestTestfile.cmake"
-    if ctest_path:exists() then
-        return true
-    end
-    return false
 end
 
 --- @param path string
