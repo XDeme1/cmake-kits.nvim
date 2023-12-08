@@ -35,4 +35,8 @@ function M.create(buf, config)
     return win_id
 end
 
+M.is_valid = function(handle)
+    return handle ~= nil and vim.api.nvim_win_is_valid(handle)
+end
+
 return M

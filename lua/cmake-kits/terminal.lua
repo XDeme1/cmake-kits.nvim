@@ -98,18 +98,17 @@ function M.close()
 end
 
 function M.toggle()
-    if not terminal_state.win.id then
-        M.open()
-    else
+    if win.is_valid(terminal_state.win.id) then
         M.close()
+    else
+        M.open()
     end
 end
 
 function M.scroll_end()
-    if not terminal_state.win.id then
-        return
+    if win.is_valid(terminal_state.win.id) then
+        vim.fn.win_execute(terminal_state.win.id, "norm G")
     end
-    vim.fn.win_execute(terminal_state.win.id, "norm G")
 end
 
 --- @param line string
@@ -122,7 +121,7 @@ function M.send_data(line)
 end
 
 function M.clear()
-    local is_closed = terminal_state.win.id == nil
+    local is_closed = not win.is_valid(terminal_state.win.id)
     if not is_closed then
         vim.api.nvim_win_close(terminal_state.win.id, true)
         terminal_state.win.id = nil
@@ -144,7 +143,7 @@ end
 
 function M.set_position(pos)
     terminal_state.win.pos = pos
-    if terminal_state.win.id then
+    if win.is_valid(terminal_state.win.id) then
         vim.api.nvim_win_close(terminal_state.win.id, true)
         M.create_window()
     end
