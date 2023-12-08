@@ -68,7 +68,7 @@
 
 ---@class cmake-kits.Target
 ---@field name string
----@field full_path string?
+---@field path string?
 ---@field type cmake-kits.TargetType?
 
 --- @class cmake-kits.ProjectState Table holding the state of the cmake project

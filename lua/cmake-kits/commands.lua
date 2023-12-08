@@ -259,13 +259,16 @@ end
 --- @param opts cmake-kits.Job
 function M.create_run_job(opts)
     local ext_terminal, args = utils.get_external_terminal()
+    local build_dir = project.interpolate_string(config.build_directory)
     M.active_job = plenay_job:new({
         command = ext_terminal,
         args = {
             unpack(args),
             "bash",
             "-c",
-            opts.target.full_path .. ";" .. 'read -n 1 -r -p "\nPress any key to continue..."',
+            tostring(Path:new(build_dir) / opts.target.path)
+                .. ";"
+                .. 'read -n 1 -r -p "\nPress any key to continue..."',
         },
         on_start = function()
             --- The on_exit is only called when the console exits.

@@ -60,7 +60,7 @@ function M.get_build_targets(build_dir)
             if data.artifacts then
                 local target = {
                     name = data.name,
-                    full_path = vim.fs.joinpath(build_dir, data.artifacts[1].path),
+                    path = data.artifacts[1].path,
                     type = data.type,
                 }
                 table.insert(build_targets, target)
