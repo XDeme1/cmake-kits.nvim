@@ -131,7 +131,7 @@ function M.clear()
     })
     M.create_buffer()
     if not is_closed then
-        M.create_window()
+        M.open()
     end
 end
 
@@ -145,7 +145,7 @@ function M.set_position(pos)
     terminal_state.win.pos = pos
     if win.is_valid(terminal_state.win.id) then
         vim.api.nvim_win_close(terminal_state.win.id, true)
-        M.create_window()
+        M.open()
     end
 end
 
