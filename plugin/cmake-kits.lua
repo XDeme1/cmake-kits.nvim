@@ -21,7 +21,7 @@ vim.api.nvim_create_user_command("CmakeSelectBuildType", function(opts)
         project.build_type = opts.fargs[1]
         return
     end
-    local curr_type = project.build_type
+    local curr_type = project.state.build_type
     picker.select_build_type(function(selected)
         commands.configure({ fresh = curr_type ~= selected })
     end)
