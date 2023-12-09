@@ -79,7 +79,6 @@ M.set_root_dir = function(dir)
     end
 
     M.root_dir = dir
-    M.load_project()
     local local_config_dir = Path:new(dir) / ".vscode"
     local path = local_config_dir / "settings.json"
     local path_str = tostring(path)
@@ -87,6 +86,7 @@ M.set_root_dir = function(dir)
     if path:exists() then
         M.load_local_config(path_str)
     end
+    M.load_project()
 
     local defer = nil
     M.file_watcher = watcher.watch(tostring(local_config_dir), {
