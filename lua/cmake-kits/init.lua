@@ -3,33 +3,39 @@ local project = require("cmake-kits.project")
 local kits = require("cmake-kits.kits")
 local commands = require("cmake-kits.commands")
 local terminal = require("cmake-kits.terminal")
+local utils = require("cmake-kits.utils")
 
 local M = {}
-
---- @type cmake-kits.SetupConfig
-local default = {
-    terminal = {
-        toggle = "<C-c>",
-        pos = "bottom",
-    },
-}
 
 --- @param opts cmake-kits.SetupConfig
 M.setup = function(opts)
     opts = opts or {}
-    opts = vim.tbl_deep_extend("keep", opts, default, config)
-
-    kits.load_kits()
     M._setup_autocmds(opts)
-    M._setup_terminal(opts)
-    vim.tbl_extend("force", config, opts)
+    terminal.setup(opts)
+
+    for k, _ in pairs(config) do
+        if opts[k] then
+            config[k] = opts[k]
+        end
+    end
+
+    kits.kits = utils.load_data(kits.save_path)
+
+    if opts.terminal.toggle then
+        vim.keymap.set("n", opts.terminal.toggle, function()
+            if project.root_dir then
+                terminal.toggle()
+                terminal.scroll_end()
+            end
+        end, {})
+    end
 end
 
 function M._setup_autocmds(opts)
     vim.api.nvim_create_autocmd("VimLeavePre", {
         group = vim.api.nvim_create_augroup("CmakeSaveKits", {}),
         callback = function()
-            kits.save_kits()
+            utils.save_data(M.save_path, M.kits, true)
             if project.root_dir then
                 project.save_project()
             end
@@ -56,17 +62,6 @@ function M._setup_autocmds(opts)
             end,
         })
     end
-end
-
-function M._setup_terminal(opts)
-    terminal.setup(opts)
-
-    vim.keymap.set("n", opts.terminal.toggle, function()
-        if project.root_dir then
-            terminal.toggle()
-            terminal.scroll_end()
-        end
-    end, {})
 end
 
 return M

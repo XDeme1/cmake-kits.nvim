@@ -1,4 +1,5 @@
 local win = require("cmake-kits.window")
+local border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" }
 
 local terminal_state = {
     buf_id = nil,
@@ -19,7 +20,7 @@ local terminal_state = {
                 width = function()
                     return math.floor(vim.o.columns * (1 / 1.5))
                 end,
-                border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
+                border = border,
             },
             bottom = {
                 row = function()
@@ -34,7 +35,7 @@ local terminal_state = {
                 width = function()
                     return vim.o.columns - 2
                 end,
-                border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
+                border = border,
             },
         },
         background = nil,
@@ -46,15 +47,14 @@ local terminal_state = {
 local M = {}
 
 function M.setup(opts)
-    M.create_buffer()
-    opts = opts or {}
     opts.terminal = opts.terminal or {}
+    M.create_buffer()
     if opts.terminal.styles then
         terminal_state.win.styles =
             vim.tbl_deep_extend("force", terminal_state.win.styles, opts.terminal.styles)
     end
 
-    terminal_state.win.pos = opts.terminal.pos or terminal_state.win.pos
+    terminal_state.win.pos = opts.terminal.pos or "bottom"
 end
 
 function M.open()

@@ -1,20 +1,11 @@
 local job = require("plenary.job")
-local utils = require("cmake-kits.utils")
 
 local M = {}
 
 M.kits = {}
 
-local save_path =
+M.save_path =
     vim.fs.joinpath(vim.fs.normalize("$HOME"), ".local/share/CMakeTools/cmake-tools-kits.json")
-
-M.load_kits = function()
-    M.kits = utils.load_data(save_path)
-end
-
-M.save_kits = function()
-    utils.save_data(save_path, M.kits, true)
-end
 
 M.scan_for_kits = function()
     local path_array = vim.split(vim.fs.normalize("$PATH"), ":", { plain = true, trimempty = true })
