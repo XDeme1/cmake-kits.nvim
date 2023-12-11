@@ -33,7 +33,7 @@ function M._setup_autocmds(opts)
     vim.api.nvim_create_autocmd("VimLeavePre", {
         group = vim.api.nvim_create_augroup("CmakeSaveKits", {}),
         callback = function()
-            utils.save_data(M.save_path, M.kits, true)
+            utils.save_data(kits.save_path, kits.kits, true)
             if project.root_dir then
                 project.save_project()
             end
