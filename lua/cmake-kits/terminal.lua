@@ -1,43 +1,44 @@
 local win = require("cmake-kits.window")
 local border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" }
+local default_styles = {
+    center = {
+        row = function()
+            return math.floor(vim.o.lines * (1 / 5))
+        end,
+        col = function()
+            return math.floor(vim.o.columns * (1 / 5))
+        end,
+        height = function()
+            return 22
+        end,
+        width = function()
+            return math.floor(vim.o.columns * (1 / 1.5))
+        end,
+        border = border,
+    },
+    bottom = {
+        row = function()
+            return vim.o.lines - vim.o.cmdheight - 15
+        end,
+        col = function()
+            return 0
+        end,
+        height = function()
+            return 13
+        end,
+        width = function()
+            return vim.o.columns - 2
+        end,
+        border = border,
+    },
+}
 
 local terminal_state = {
     buf_id = nil,
     win = {
         id = nil,
         pos = "bottom",
-        styles = {
-            center = {
-                row = function()
-                    return math.floor(vim.o.lines * (1 / 5))
-                end,
-                col = function()
-                    return math.floor(vim.o.columns * (1 / 5))
-                end,
-                height = function()
-                    return 22
-                end,
-                width = function()
-                    return math.floor(vim.o.columns * (1 / 1.5))
-                end,
-                border = border,
-            },
-            bottom = {
-                row = function()
-                    return vim.o.lines - vim.o.cmdheight - 15
-                end,
-                col = function()
-                    return 0
-                end,
-                height = function()
-                    return 13
-                end,
-                width = function()
-                    return vim.o.columns - 2
-                end,
-                border = border,
-            },
-        },
+        styles = default_styles,
         background = nil,
         foreground = nil,
     },
@@ -144,14 +145,9 @@ end
 function M.set_position(pos)
     terminal_state.win.pos = pos
     if win.is_valid(terminal_state.win.id) then
-        vim.api.nvim_win_close(terminal_state.win.id, true)
+        M.close()
         M.open()
     end
-end
-
-function M.update_size(width, height)
-    terminal_state.win.styles.bottom.width = width
-    terminal_state.win.styles.bottom.height = height
 end
 
 return M

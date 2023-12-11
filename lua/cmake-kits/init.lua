@@ -21,14 +21,12 @@ M.setup = function(opts)
 
     kits.kits = utils.load_data(kits.save_path)
 
-    if opts.terminal.toggle then
-        vim.keymap.set("n", opts.terminal.toggle, function()
-            if project.root_dir then
-                terminal.toggle()
-                terminal.scroll_end()
-            end
-        end, {})
-    end
+    vim.keymap.set("n", opts.terminal.toggle or "<C-c>", function()
+        if project.root_dir then
+            terminal.toggle()
+            terminal.scroll_end()
+        end
+    end, {})
 end
 
 function M._setup_autocmds(opts)

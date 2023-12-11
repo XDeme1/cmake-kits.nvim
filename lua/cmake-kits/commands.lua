@@ -53,6 +53,15 @@ M.configure = function(opts)
     M.active_job = plenay_job:new({
         command = config.command,
         args = args,
+        on_start = function()
+            local str = "[configure] " .. config.command
+            for _, v in ipairs(args) do
+                str = str .. " " .. v
+            end
+            vim.schedule(function()
+                terminal.send_data(str)
+            end)
+        end,
         on_stdout = function(_, data)
             vim.schedule(function()
                 terminal.send_data("[configure] " .. data)
