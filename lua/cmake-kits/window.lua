@@ -6,11 +6,8 @@
 ---@field height integer|string
 ---@field border string[]
 
-local M = {}
-
 --- @param config cmake-kits.WindowConfig
-function M.create(buf, config)
-    config = config or {}
+function ParseWinConfig(config)
     if type(config.width) == "string" then
         if config.width:sub(config.width:len()) == "%" then
             local percentage = tonumber(config.width:sub(1, config.width:len() - 1)) / 100
@@ -23,20 +20,64 @@ function M.create(buf, config)
             config.height = math.floor(vim.o.lines * percentage)
         end
     end
-    local win_id = vim.api.nvim_open_win(buf, config.enter, {
-        relative = "editor",
-        col = config.col or 0,
-        row = config.row or 0,
-        width = config.width,
-        height = config.height,
-        border = config.border,
-        style = "minimal",
-    })
-    return win_id
 end
 
-M.is_valid = function(handle)
-    return handle ~= nil and vim.api.nvim_win_is_valid(handle)
+local M = {}
+
+--- @param config cmake-kits.WindowConfig
+function M:create(buf, config)
+    config = config or {}
+    local o = {}
+    setmetatable(o, self)
+    self.__index = self
+
+    ParseWinConfig(config)
+    self.buf = buf
+    self.config = config
+    vim.api.nvim_create_autocmd("WinClosed", {
+        buffer = self.buf,
+        callback = function()
+            self.id = nil
+        end,
+    })
+    return o
+end
+
+function M:is_valid()
+    return self.id ~= nil and vim.api.nvim_win_is_valid(self.id)
+end
+
+function M:open()
+    if self.id then
+        return
+    end
+    self.id = vim.api.nvim_open_win(self.buf, self.config.enter, {
+        relative = "editor",
+        col = self.config.col or 0,
+        row = self.config.row or 0,
+        width = self.config.width,
+        height = self.config.height,
+        border = self.config.border,
+        style = "minimal",
+    })
+
+    vim.api.nvim_create_autocmd("WinClosed", {
+        buffer = self.buf,
+        callback = function()
+            self.id = nil
+        end,
+    })
+end
+
+function M:close()
+    if self.id then
+        vim.api.nvim_win_close(self.id, true)
+        self.id = nil
+    end
+end
+
+function M:set_buf(buf)
+    self.buf = buf
 end
 
 return M

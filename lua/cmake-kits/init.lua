@@ -24,7 +24,6 @@ M.setup = function(opts)
     vim.keymap.set("n", opts.terminal.toggle or "<C-c>", function()
         if project.root_dir then
             terminal.toggle()
-            terminal.scroll_end()
         end
     end, {})
 end

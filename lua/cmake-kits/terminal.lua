@@ -35,14 +35,9 @@ local default_styles = {
 
 local terminal_state = {
     buf_id = nil,
-    win = {
-        id = nil,
-        pos = "bottom",
-        styles = default_styles,
-        background = nil,
-        foreground = nil,
-    },
-    hl_ns = vim.api.nvim_create_namespace("CmakekitsTerminal"),
+    window = nil,
+    pos = "bottom",
+    styles = default_styles,
 }
 
 local M = {}
@@ -51,64 +46,26 @@ function M.setup(opts)
     opts.terminal = opts.terminal or {}
     M.create_buffer()
     if opts.terminal.styles then
-        terminal_state.win.styles =
-            vim.tbl_deep_extend("force", terminal_state.win.styles, opts.terminal.styles)
+        terminal_state.styles =
+            vim.tbl_deep_extend("force", terminal_state.styles, opts.terminal.styles)
     end
 
-    terminal_state.win.pos = opts.terminal.pos or "bottom"
-end
-
-function M.open()
-    terminal_state.win.id = win.create(terminal_state.buf_id, {
+    terminal_state.pos = opts.terminal.pos or "bottom"
+    terminal_state.window = win:create(terminal_state.buf_id, {
         enter = true,
-        col = terminal_state.win.styles[terminal_state.win.pos].col(),
-        row = terminal_state.win.styles[terminal_state.win.pos].row(),
-        height = terminal_state.win.styles[terminal_state.win.pos].height(),
-        width = terminal_state.win.styles[terminal_state.win.pos].width(),
-        border = terminal_state.win.styles[terminal_state.win.pos].border,
+        col = terminal_state.styles[terminal_state.pos].col(),
+        row = terminal_state.styles[terminal_state.pos].row(),
+        height = terminal_state.styles[terminal_state.pos].height(),
+        width = terminal_state.styles[terminal_state.pos].width(),
+        border = terminal_state.styles[terminal_state.pos].border,
     })
-
-    vim.api.nvim_create_autocmd("WinClosed", {
-        buffer = terminal_state.buf_id,
-        callback = function()
-            terminal_state.win.id = nil
-        end,
-    })
-
-    --- TODO: Neovide doesnt auto resize float window
-    if vim.g.neovide then
-        vim.api.nvim_create_autocmd("WinResized", {
-            callback = function()
-                if terminal_state.win.id then
-                    vim.api.nvim_win_set_config(terminal_state.win.id, {
-                        relative = "editor",
-                        col = terminal_state.win.styles[terminal_state.win.pos].col(),
-                        row = terminal_state.win.styles[terminal_state.win.pos].row(),
-                        height = terminal_state.win.styles[terminal_state.win.pos].height(),
-                        width = terminal_state.win.styles[terminal_state.win.pos].width(),
-                    })
-                end
-            end,
-        })
-    end
-end
-
-function M.close()
-    vim.api.nvim_win_close(terminal_state.win.id, true)
-    terminal_state.win.id = nil
 end
 
 function M.toggle()
-    if win.is_valid(terminal_state.win.id) then
-        M.close()
+    if terminal_state.window:is_valid() then
+        terminal_state.window:close()
     else
-        M.open()
-    end
-end
-
-function M.scroll_end()
-    if win.is_valid(terminal_state.win.id) then
-        vim.fn.win_execute(terminal_state.win.id, "norm G")
+        terminal_state.window:open()
     end
 end
 
@@ -116,23 +73,22 @@ end
 function M.send_data(line)
     vim.bo[terminal_state.buf_id].modifiable = true
     vim.api.nvim_buf_set_lines(terminal_state.buf_id, -1, -1, true, { line })
-    vim.fn.win_execute(terminal_state.win.id, "norm G")
     vim.bo[terminal_state.buf_id].modified = false
     vim.bo[terminal_state.buf_id].modifiable = false
 end
 
 function M.clear()
-    local is_closed = not win.is_valid(terminal_state.win.id)
+    local is_closed = not terminal_state.window:is_valid()
     if not is_closed then
-        vim.api.nvim_win_close(terminal_state.win.id, true)
-        terminal_state.win.id = nil
+        terminal_state.window:close()
     end
     vim.api.nvim_buf_delete(terminal_state.buf_id, {
         force = true,
     })
     M.create_buffer()
+    terminal_state.window:set_buf(terminal_state.buf_id)
     if not is_closed then
-        M.open()
+        terminal_state.window:open()
     end
 end
 
@@ -143,10 +99,10 @@ function M.create_buffer()
 end
 
 function M.set_position(pos)
-    terminal_state.win.pos = pos
-    if win.is_valid(terminal_state.win.id) then
-        M.close()
-        M.open()
+    terminal_state.pos = pos
+    if terminal_state.window:is_valid() then
+        terminal_state.window:close()
+        terminal_state.window:open()
     end
 end
 
