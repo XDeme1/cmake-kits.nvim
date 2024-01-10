@@ -23,13 +23,24 @@ M.is_cmake_project = function(path, depth)
     return not vim.tbl_isempty(found)
 end
 
+--- @class cmake-kits.JsonOpts
+--- @field skip_comments boolean?
+
 --- @param path string
+--- @param opts cmake-kits.JsonOpts?
 --- @return table
-M.load_data = function(path)
+M.load_data = function(path, opts)
+    opts = opts or {}
     local fd = io.open(path, "r")
     local data = {}
     if fd then
-        data = vim.json.decode(fd:read("*a"))
+        --- @type string
+        local file_data = fd:read("*a")
+        if opts.skip_comments then
+            file_data = file_data:gsub("//.-\n", "")
+            file_data = file_data:gsub("/%*.-%*/", "")
+        end
+        data = vim.json.decode(file_data)
         fd:close()
     end
     return data

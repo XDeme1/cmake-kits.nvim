@@ -53,10 +53,10 @@ function M.setup(opts)
     terminal_state.pos = opts.terminal.pos or "bottom"
     terminal_state.window = win:create(terminal_state.buf_id, {
         enter = true,
-        col = terminal_state.styles[terminal_state.pos].col(),
-        row = terminal_state.styles[terminal_state.pos].row(),
-        height = terminal_state.styles[terminal_state.pos].height(),
-        width = terminal_state.styles[terminal_state.pos].width(),
+        col = terminal_state.styles[terminal_state.pos].col,
+        row = terminal_state.styles[terminal_state.pos].row,
+        height = terminal_state.styles[terminal_state.pos].height,
+        width = terminal_state.styles[terminal_state.pos].width,
         border = terminal_state.styles[terminal_state.pos].border,
     })
 end

@@ -56,7 +56,7 @@ M.has_ctest = function()
 end
 
 M.load_local_config = function(path)
-    local local_config = utils.load_data(path)
+    local local_config = utils.load_data(path, { skip_comments = true })
     if local_config["cmake.sourceDirectory"] then
         M.config.source_directory = M.interpolate_string(local_config["cmake.sourceDirectory"])
     else
